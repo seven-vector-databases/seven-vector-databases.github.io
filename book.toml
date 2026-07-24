@@ -1,0 +1,16 @@
+[book]
+authors = ["Akmal Chaudhri"]
+language = "en"
+src = "src"
+title = "Seven Vector Databases"
+description = "In Seven Days"
+
+[output.html]
+hash-files = true
+git-repository-url = "https://github.com/seven-vector-databases/seven-vector-databases.github.io"
+edit-url-template = "https://github.com/seven-vector-databases/seven-vector-databases.github.io/edit/main/{path}"
+no-section-label = true
+
+[output.html.search]
+limit-results = 20
+use-boolean-and = true
