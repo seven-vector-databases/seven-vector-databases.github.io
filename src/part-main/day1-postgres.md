@@ -1,4 +1,4 @@
-# Day 1 - PostgreSQL + pgvector
+# Day 1: PostgreSQL + pgvector
 
 ## What Is It?
 
