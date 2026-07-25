@@ -1,4 +1,4 @@
-# Day 2 - MongoDB Atlas
+# Day 2: MongoDB Atlas
 
 ## What Is It?
 
