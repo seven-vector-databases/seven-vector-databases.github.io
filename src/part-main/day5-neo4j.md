@@ -63,9 +63,9 @@ To follow along you'll need:
 
 If you do not already have an instance:
 
-1. Go to [https://console.neo4j.io](https://console.neo4j.io) and create an account
+1. Go to [Neo4j Console](https://console.neo4j.io) and create an account
 2. Click **Create free instance**
-3. Download or copy the generated admin credentials immediately
+3. Download or copy the generated admin credentials
 
 ### Configuration
 
@@ -298,8 +298,6 @@ This query surfaces connections that neither approach alone could find. Starting
 The two fraudulent accounts surface together through their shared device - exactly the fraud ring the graph was designed to contain.
 
 ### Fraud Ring Visualization
-
-> **Note:** `init_notebook_mode(connected = True)` from `plotly.offline` is required before rendering Plotly figures inline in Jupyter. Add it as a cell before the visualization cells.
 
 A network visualization makes the fraud ring structure immediately obvious. We use `networkx` for graph layout and `plotly` for interactive rendering.
 
