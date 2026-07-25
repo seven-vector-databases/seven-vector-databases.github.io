@@ -1,4 +1,4 @@
-# Day 6 - Snowflake
+# Day 6: Snowflake
 
 ## What Is It?
 
