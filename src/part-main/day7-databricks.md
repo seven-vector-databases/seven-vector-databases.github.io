@@ -6,7 +6,7 @@ Databricks is a leading data and AI platform built around the lakehouse architec
 
 Databricks SQL adds a familiar SQL interface on top of the lakehouse, letting analysts and data engineers query Delta tables without writing Spark code. The `VECTOR_COSINE_SIMILARITY` function extends this to vector similarity search, making it straightforward to add semantic search to data that already lives in the lakehouse - without introducing a separate vector database.
 
-In 2025 Databricks acquired Neon, a serverless Postgres startup. The acquisition signals Databricks' intent to extend the lakehouse to cover the full spectrum of database workloads, including the transactional and vector search use cases that Neon's pgvector support provides. For teams already working in Databricks, this reinforces the "stay in the lakehouse" story that this chapter demonstrates.
+In 2025 Databricks acquired Neon, a serverless Postgres startup. The acquisition signals Databricks' intent to extend the lakehouse to cover the full spectrum of database workloads, including the transactional and vector search use cases that Neon's `pgvector` support provides. For teams already working in Databricks, this reinforces the "stay in the lakehouse" story that this chapter demonstrates.
 
 ## When Would You Reach for It?
 
@@ -55,7 +55,7 @@ To follow along you'll need:
 2. Click **User > Developer**
 3. Next to **Access tokens**, click **Manage**
 4. Click **Generate new token**, give it a name, select **BI Tools** as the scope type and click **Generate**
-5. Copy the token immediately - it is only shown once
+5. Copy the token immediately
 
 ### Find Your SQL Warehouse Connection Details
 
@@ -283,13 +283,13 @@ No second system, no result merging, no data movement. The semantic search and t
 
 **Bulk insert limit.** The single-statement bulk insert approach works well for datasets up to a few hundred documents. For larger datasets the SQL string becomes very large and may hit connector or warehouse limits. For production bulk loads, use Databricks' native data ingestion tools such as `COPY INTO` or the Auto Loader, which are designed for large-scale data movement into Delta tables.
 
-**Lakebase and pgvector.** For production RAG applications that need low-latency reads and full Postgres semantics alongside lakehouse data, Databricks Lakebase provides a fully managed Postgres with pgvector integrated directly into the platform. See the Lakebase section below for a working example.
+**Lakebase and pgvector.** For production RAG applications that need low-latency reads and full Postgres semantics alongside lakehouse data, Databricks Lakebase provides a fully managed Postgres with `pgvector` integrated directly into the platform. See the Lakebase section below for a working example.
 
 ## Lakebase - pgvector Inside the Lakehouse
 
-Databricks Lakebase is a fully managed Postgres database integrated directly into the Databricks platform. It is the product of Databricks' acquisition of Neon in 2025 and brings serverless Postgres with pgvector into the lakehouse context - available on the free tier with scale-to-zero compute and one project per account.
+Databricks Lakebase is a fully managed Postgres database integrated directly into the Databricks platform. It is the product of Databricks' acquisition of Neon in 2025 and brings serverless Postgres with `pgvector` into the lakehouse context - available on the free tier with scale-to-zero compute and one project per account.
 
-This is significant for the book's story. Day 1 started with pgvector on a local Postgres install. Day 7 ends with pgvector running inside the Databricks lakehouse as a fully managed service. The underlying technology is the same; the operational context is completely different.
+This is significant for the book's story. Day 1 started with `pgvector` on a local Postgres install. Day 7 ends with `pgvector` running inside the Databricks lakehouse as a fully managed service. The underlying technology is the same; the operational context is completely different.
 
 ### Connecting to Lakebase
 
@@ -310,7 +310,7 @@ The OAuth token expires after one hour. For production use, the recommended appr
 
 ### pgvector on Lakebase
 
-pgvector is available on Lakebase and is enabled programmatically in the notebook:
+`pgvector` is available on Lakebase and is enabled programmatically in the notebook:
 
 ```python
 lb_cursor.execute("CREATE EXTENSION IF NOT EXISTS vector;")
@@ -333,7 +333,7 @@ lb_cursor.execute(f"""
 """)
 ```
 
-We'll reuse the embeddings already generated earlier in the notebook - no additional Ollama calls needed. An HNSW index is created after loading for fast similarity search:
+We'll reuse the embeddings already generated earlier in the notebook - no additional Ollama calls needed. An `HNSW` index is created after loading for fast similarity search:
 
 ```python
 lb_cursor.execute(f"""
@@ -367,13 +367,13 @@ Lakebase query: 'how do I restart a service during an incident'
   in the EventBus environment. Follow these steps in order during an incident...
 ```
 
-The Lakebase connection, the vector column and the `<=>` operator are all standard Postgres and pgvector - the same as Day 1. What has changed is the operational context: the database is fully managed, scales to zero when idle and lives inside the Databricks platform alongside Delta tables, ML models and pipelines.
+The Lakebase connection, the vector column and the `<=>` operator are all standard Postgres and `pgvector` - the same as Day 1. What has changed is the operational context: the database is fully managed, scales to zero when idle and lives inside the Databricks platform alongside Delta tables, ML models and pipelines.
 
 ## When to Look Elsewhere
 
 Databricks is the right choice when your data and workflows already live there. Consider alternatives if:
 
-- You have no existing Databricks footprint. Databricks is a paid platform and standing it up just for vector search is hard to justify when simpler options exist. Day 1 (pgvector) and Day 3 (Pinecone) are considerably easier starting points.
+- You have no existing Databricks footprint. Databricks is a paid platform and standing it up just for vector search is hard to justify when simpler options exist. Day 1 (`pgvector`) and Day 3 (Pinecone) are considerably easier starting points.
 - You need sub-second semantic search at large scale without a paid tier. The full table scan approach in this chapter does not scale to millions of documents at interactive latency. Databricks Vector Search on a paid tier addresses this, but the community edition does not.
 - Your team is not already working in SQL or PySpark. The Databricks connector-based approach adds friction compared to databases with richer Python SDKs designed for application developers.
 - You need the embedding pipeline to be fully managed. This chapter generates embeddings locally with Ollama. Databricks does offer managed embedding models through its Foundation Model APIs on paid tiers, but the community edition requires an external embedding step.
