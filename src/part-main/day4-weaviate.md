@@ -1,4 +1,4 @@
-# Day 4 - Weaviate
+# Day 4: Weaviate
 
 ## What Is It?
 
