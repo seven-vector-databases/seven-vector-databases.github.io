@@ -47,12 +47,12 @@ The `description` field is the one that carries semantic meaning. Everything els
 
 To follow along you will need:
 
-- PostgreSQL 16 installed locally (via Homebrew on a Mac)
+- PostgreSQL 16 installed locally (use Homebrew on a Mac)
 - `pgvector` installed from source (see the note below)
 - Ollama running locally with the `all-minilm` model pulled
 - Python 3.12 with a virtual environment
 
-> **Note:** The Homebrew formula for `pgvector` installs cleanly but leaves an empty package on Apple Silicon Macs - the extension files are simply not present after installation. The workaround is to install from source.
+> **Note:** The Homebrew formula for `pgvector` installs cleanly but leaves an empty package on Apple Silicon Macs - the extension files are simply not present after installation. The workaround is to install from source, as shown below.
 
 ```shell
 brew uninstall pgvector
@@ -85,6 +85,7 @@ conn = psycopg2.connect(
     host   = "localhost",
     port   = 5432
 )
+
 conn.autocommit = True
 cursor = conn.cursor()
 
@@ -147,12 +148,12 @@ job_listings = generate_job_listings(NUM_JOBS)
 
 ### Create the Table
 
-The table schema is straightforward. The `embedding` column uses the `vector(384)` type, which matches the output dimensionality of `all-minilm`.
+The table schema is straightforward. The `embedding` column uses the `VECTOR({EMBEDDING_DIM})` type, which matches the output dimensionality of `all-minilm`.
 
 ```python
 cursor.execute("DROP TABLE IF EXISTS job_listings;")
 
-cursor.execute("""
+cursor.execute(f"""
     CREATE TABLE job_listings (
         id          SERIAL PRIMARY KEY,
         title       TEXT,
@@ -162,7 +163,7 @@ cursor.execute("""
         salary_max  INTEGER,
         skills      TEXT[],
         description TEXT,
-        embedding   vector(384)
+        embedding   VECTOR({EMBEDDING_DIM})
     );
 """)
 ```
@@ -191,7 +192,7 @@ for job in tqdm(job_listings, desc = "Inserting listings"):
 
 ### Create a Vector Index
 
-`pgvector` supports two index types: IVFFlat and HNSW. We'll use HNSW, which gives better recall and is the recommended default for most workloads. Note that we'll create the index after loading data - building it incrementally during inserts is significantly slower for bulk loads.
+`pgvector` supports two index types: `IVFFlat` and `HNSW`. We'll use `HNSW`, which gives better recall and is the recommended default for most workloads. Note that we'll create the index after loading data - building it incrementally during inserts is significantly slower for bulk loads.
 
 ```python
 cursor.execute("""
@@ -306,25 +307,25 @@ query = 'technical leadership and system design', location = 'New York', min_sal
   $135,000 - $170,000 | Similarity: 0.272
 ```
 
-The SQL filter and the vector similarity operate together in a single round trip to the database. There is no second system to query, no results to merge and no metadata to synchronise.
+The SQL filter and the vector similarity operate together in a single round trip to the database. There is no second system to query, no results to merge and no metadata to synchronize.
 
 ## What You'd Hit in Production
 
-**Index build time.** HNSW indexes are built at insert time, which slows bulk loads considerably. For large datasets, always load data first and create the index afterwards. The difference can be an order of magnitude.
+**Index build time.** `HNSW` indexes are built at insert time, which slows bulk loads considerably. For large datasets, always load data first and create the index afterwards. The difference can be an order of magnitude.
 
-**Dimensionality limit.** pgvector supports up to 2,000 dimensions. Most embedding models are well within this - `all-minilm` produces 384 dimensions, OpenAI's `text-embedding-3-small` produces 1,536. The exception is `text-embedding-3-large` at 3,072 dimensions, which requires dimensionality reduction before storage.
+**Dimensionality limit.** `pgvector` supports up to 2,000 dimensions. Most embedding models are well within this - `all-minilm` produces 384 dimensions, OpenAI's `text-embedding-3-small` produces 1,536. The exception is `text-embedding-3-large` at 3,072 dimensions, which requires dimensionality reduction before storage.
 
-**Approximate vs exact search.** HNSW is an approximate nearest neighbor algorithm. For the vast majority of applications this is fine - recall is high and the speed improvement over exact search is substantial. If you need guaranteed exact results, omit the index and use a sequential scan, but be aware this does not scale beyond a few hundred thousand vectors.
+**Approximate vs exact search.** `HNSW` is an approximate nearest neighbor algorithm. For the vast majority of applications this is fine - recall is high and the speed improvement over exact search is substantial. If you need guaranteed exact results, omit the index and use a sequential scan, but be aware this does not scale beyond a few hundred thousand vectors.
 
-**Connection pooling.** Vector queries are memory-intensive, particularly at higher dimensions. In production, use PgBouncer or a connection pooler to avoid connection exhaustion under load.
+**Connection pooling.** Vector queries are memory-intensive, particularly at higher dimensions. In production, use `PgBouncer` or a connection pooler to avoid connection exhaustion under load.
 
 ## When to Look Elsewhere
 
 `pgvector` is a strong default, but it is not the right choice for every situation. Consider a dedicated vector database if:
 
 - You are storing tens of millions of vectors and need sub-10ms retrieval at scale. Dedicated vector databases are built around this problem in a way that a general-purpose database with an extension is not.
-- You need advanced filtering on high-cardinality metadata without index performance trade-offs. `pgvector`'s HNSW index applies the vector search first and filters afterwards, which can degrade precision when filters are highly selective.
+- You need advanced filtering on high-cardinality metadata without index performance trade-offs. `pgvector`'s `HNSW` index applies the vector search first and filters afterwards, which can degrade precision when filters are highly selective.
 - Your team has no existing Postgres footprint and no appetite for managing it. The operational simplicity argument only holds if Postgres is already in your stack.
 - You need built-in embedding model integrations, multi-tenancy, namespacing or other features that dedicated vector databases provide out of the box.
 
-For most applications - particularly those already running on Postgres - `pgvector` is the right place to start. It is free, battle-tested, and keeps your architecture simple. The chapters that follow explore what you gain by moving to a dedicated vector database, and when that trade-off is worth making.
+For most applications - particularly those already running on Postgres - `pgvector` is the right place to start. It is free, battle-tested and keeps your architecture simple. The chapters that follow explore what you gain by moving to a dedicated vector database, and when that trade-off is worth making.
