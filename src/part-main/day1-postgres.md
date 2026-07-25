@@ -163,7 +163,7 @@ cursor.execute(f"""
         salary_max  INTEGER,
         skills      TEXT[],
         description TEXT,
-        embedding   VECTOR({EMBEDDING_DIM})
+        embedding   VECTOR({EMBEDDING_DIMS})
     );
 """)
 ```
