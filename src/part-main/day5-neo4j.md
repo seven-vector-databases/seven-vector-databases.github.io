@@ -1,4 +1,4 @@
-# Day 5 - Neo4j
+# Day 5: Neo4j
 
 ## What Is It?
 
