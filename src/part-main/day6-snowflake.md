@@ -59,10 +59,6 @@ export SNOWFLAKE_USER="your-username"
 export SNOWFLAKE_PASSWORD="your-password"
 ```
 
-The account identifier is the part of the Snowflake URL before `.snowflakecomputing.com`.
-
-> **Note:** The `snowflake-connector-python` package requires `pyarrow<19.0.0`. Pin this to avoid an incompatibility warning with newer versions.
-
 ### Configuration
 
 ```python
@@ -189,7 +185,7 @@ success, num_chunks, num_rows, _ = write_pandas(
 
 We'll embed the query with Ollama, pass it to Snowflake as a SQL parameter and use `VECTOR_COSINE_SIMILARITY` to rank results.
 
-> **Note:** Snowflake cannot cast a `VARCHAR` directly to `VECTOR`. The stored embedding string must first be parsed into a `VARIANT` (Snowflake's JSON type) using `TRY_PARSE_JSON`, which can then be cast to `VECTOR`. The same applies to the query embedding passed as a parameter:
+> **Note:** Snowflake cannot cast a `VARCHAR` directly to `VECTOR`. The stored embedding string must first be parsed into a `VARIANT` (Snowflake's JSON type) using `TRY_PARSE_JSON`, which can then be cast to `VECTOR`. The same applies to the query embedding passed as a parameter.
 
 ```python
 def search_tickets(query: str, top_k: int = 5):
@@ -305,7 +301,7 @@ No second system, no result merging, no data movement. The semantic search and t
 
 ## What You'd Hit in Production
 
-**Cortex Search on trial accounts.** Snowflake Cortex Search handles embedding generation internally and provides a managed search service. However, the underlying embedding functions are not available on trial accounts. For production use with a paid Snowflake account, Cortex Search is worth evaluating - it removes the need for an external embedding pipeline and manages index updates as the table changes. For trial accounts or teams with an existing embedding pipeline, the `VECTOR` + `VECTOR_COSINE_SIMILARITY` approach shown in this chapter is a solid alternative.
+**Cortex Search on trial accounts.** Snowflake Cortex Search handles embedding generation internally and provides a managed search service. However, the underlying embedding functions are not available on trial accounts. For production use with a paid Snowflake account, Cortex Search is worth evaluating - it removes the need for an external embedding pipeline and manages index updates as the table changes. For trial accounts or teams with an existing embedding pipeline, the `VECTOR` + `VECTOR_COSINE_SIMILARITY` approach shown in this chapter is an alternative.
 
 **`TRY_PARSE_JSON` overhead.** Casting the stored `VARCHAR` to `VECTOR` via `TRY_PARSE_JSON` at query time adds overhead compared to storing embeddings natively as `VECTOR`. For production, consider storing embeddings directly in a `VECTOR(FLOAT, N)` column rather than as a string. The `write_pandas` function does not currently support the `VECTOR` type, so you would need to use a `PUT` and `COPY INTO` pattern or insert rows individually.
 
@@ -319,7 +315,7 @@ No second system, no result merging, no data movement. The semantic search and t
 
 Snowflake is the right choice when your data are already there. Consider alternatives if:
 
-- You have no existing Snowflake footprint. Snowflake is not free - it operates on a credit model and production usage costs money. Standing up Snowflake just for vector search would be hard to justify when purpose-built vector databases or pgvector on a managed Postgres are simpler and cheaper.
+- You have no existing Snowflake footprint. Snowflake is not free - it operates on a credit model and production usage costs money. Standing up Snowflake just for vector search would be hard to justify when purpose-built vector databases or `pgvector` on a managed Postgres are simpler and cheaper.
 - You need sub-second similarity search at very large scale. Full table scans do not scale indefinitely. Cortex Search on a paid account addresses this with approximate nearest neighbor indexing, but the free vector search approach in this chapter is inherently a scan-based approach.
 - Your embedding pipeline is not already managed. This chapter requires generating embeddings externally with Ollama and loading them manually. If you are starting from scratch with no existing pipeline, a database that handles embeddings internally - like Snowflake's Cortex Search on a paid account - reduces operational complexity.
 - Your team is not SQL-native. The Snowflake approach is cleanest for teams already working in SQL. For teams building Python applications, the connector-based approach adds friction compared to databases with richer Python SDKs.
