@@ -1,4 +1,4 @@
-# Day 3 - Pinecone
+# Day 3: Pinecone
 
 ## What Is It?
 
