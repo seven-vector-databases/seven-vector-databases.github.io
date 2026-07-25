@@ -1,4 +1,4 @@
-# Day 7 - Databricks
+# Day 7: Databricks
 
 ## What Is It?
 
