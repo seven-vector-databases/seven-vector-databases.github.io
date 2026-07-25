@@ -48,7 +48,7 @@ To follow along you'll need:
 
 If you do not already have a cluster:
 
-1. Go to [https://console.weaviate.cloud](https://console.weaviate.cloud) and create an account
+1. Go to [Weaviate Console](https://console.weaviate.cloud) and create an account
 2. Click **Create new cluster > Free**
 3. Give the cluster a name (e.g. `papers`)
 4. Accept all the other default options and and click **Create cluster**
@@ -147,7 +147,7 @@ papers = [generate_paper() for _ in range(NUM_PAPERS)]
 
 Weaviate organizes data in **collections**. Each collection has a defined schema with typed properties. We'll use `Configure.Vectors.self_provided()` since we are supplying our own embeddings from Ollama rather than using one of Weaviate's built-in vectorizers.
 
-> **Note** The Weaviate Cloud free tier only supports the `hfresh` vector index type. HNSW is not available on the free tier. Use `Configure.VectorIndex.hfresh()` rather than `Configure.VectorIndex.hnsw()`.
+> **Note** The Weaviate Cloud free tier only supports the `hfresh` vector index type. `HNSW` is not available on the free tier. Use `Configure.VectorIndex.hfresh()` rather than `Configure.VectorIndex.hnsw()`.
 
 > **Note:** The free tier allows only one collection per cluster. If the collection already exists from a previous run, delete it before recreating:
 
@@ -172,6 +172,7 @@ collection = client.collections.create(
         Property(name = "abstract",       data_type = DataType.TEXT),
     ]
 )
+
 print(f"Collection '{COLLECTION_NAME}' created.")
 ```
 
@@ -376,9 +377,9 @@ field = 'Computer Vision', min_year = 2022
 
 ## What You'd Hit in Production
 
-**Free tier limitations.** The Weaviate Cloud free tier supports one collection per cluster and only the `hfresh` vector index type. HNSW, which offers better recall at scale, requires a paid tier. For production workloads with more than a few hundred thousand vectors, upgrade to a paid plan.
+**Free tier limitations.** The Weaviate Cloud free tier supports one collection per cluster and only the `hfresh` vector index type. `HNSW`, which offers better recall at scale, requires a paid tier. For production workloads with more than a few hundred thousand vectors, upgrade to a paid plan.
 
-**hfresh vs HNSW.** The `hfresh` index type is optimized for fresh data and low-latency insertions. HNSW offers better approximate nearest neighbor recall at large scale. On the free tier you'll not notice a difference at a few hundred papers, but it is worth understanding the distinction before moving to production.
+**hfresh vs HNSW.** The `hfresh` index type is optimized for fresh data and low-latency insertions. `HNSW` offers better approximate nearest neighbor recall at large scale. On the free tier you'll not notice a difference at a few hundred papers, but it's worth understanding the distinction before moving to production.
 
 **Alpha tuning.** The right `alpha` value depends on the data and query patterns. For queries with specific technical terms, a lower alpha (more BM25) improves recall of papers that contain those exact terms. For more exploratory queries, a higher alpha (more vector) surfaces semantically related content even when the exact terms are absent. Experiment with your own queries to find the right balance.
 
@@ -386,7 +387,7 @@ field = 'Computer Vision', min_year = 2022
 
 **Batch insert behavior.** Weaviate's `batch.dynamic()` mode adjusts the batch size automatically based on server response times. For large datasets this is more efficient than fixed-size batches. Errors during batch insert are collected rather than raised immediately - check `batch.failed_objects` after the context manager exits to catch any insertion failures.
 
-**Self-hosting.** Weaviate can be run locally via Docker if you prefer not to use the managed cloud service. The self-hosted version supports HNSW on all tiers and has no collection limits. This is worth considering for production deployments with data residency requirements.
+**Self-hosting.** Weaviate can be run locally via Docker if you prefer not to use the managed cloud service. The self-hosted version supports `HNSW` on all tiers and has no collection limits. This is worth considering for production deployments with data residency requirements.
 
 ## When to Look Elsewhere
 
