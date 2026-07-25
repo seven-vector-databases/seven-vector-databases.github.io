@@ -135,7 +135,7 @@ recipes = [generate_recipe() for _ in range(NUM_RECIPES)]
 
 ### Generate Embeddings and Load Data
 
-We'll embed each recipe description and store the vector as an `embedding` field on the document. As mentioned earlier, note the use of `delete_many({})` rather than `drop()` to preserve the vector index between runs:
+We'll embed each recipe description and store the vector as an `embedding` field on the document:
 
 ```python
 def get_embedding(text: str) -> list:
