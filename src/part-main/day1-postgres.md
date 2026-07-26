@@ -4,9 +4,9 @@
 
 PostgreSQL needs little introduction. It is the world's most widely deployed open-source relational database, with a history stretching back to the late 1980s and an ecosystem that spans virtually every programming language, cloud platform and deployment model imaginable. Developers reach for Postgres because it is reliable, standards-compliant and extraordinarily capable - it handles relational data, JSON documents, full-text search and geospatial queries, all without leaving the database.
 
-The `pgvector` extension adds one more capability to that list: native vector similarity search. Released in 2021 and now available on every major managed Postgres platform, `pgvector` introduces a `vector` data type and the indexing structures needed to search across it efficiently. With a single `CREATE EXTENSION` command, a Postgres database becomes a vector database.
+The `pgvector` extension adds one more capability to that list: native vector similarity search. Released in 2021 and now available on every major managed Postgres platform, `pgvector` introduces a `VECTOR` data type and the indexing structures needed to search across it efficiently. With a single `CREATE EXTENSION` command, a Postgres database becomes a vector database.
 
-What makes this interesting is not that `pgvector` is the fastest or most feature-rich vector search implementation - it is not. What makes it interesting is that it requires no new infrastructure, no new operational skills and no new mental model. If your application already runs on Postgres, vector search is one extension away.
+What makes this interesting is not that `pgvector` is the fastest or most feature-rich vector search implementation - it's not. What makes it interesting is that it requires no new infrastructure, no new operational skills and no new mental model. If your application already runs on Postgres, vector search is one extension away.
 
 ## When Would You Reach for It?
 
