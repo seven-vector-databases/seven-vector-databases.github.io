@@ -69,7 +69,7 @@ If you do not already have an instance:
 
 ### Configuration
 
-We'll set the following Neo4j environment variables before running the notebook:
+We'll set the following environment variables before running the notebook:
 
 ```bash
 export NEO4J_URI="neo4j+s://xxxxxxxx.databases.neo4j.io"
