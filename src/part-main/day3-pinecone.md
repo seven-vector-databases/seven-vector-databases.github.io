@@ -70,7 +70,7 @@ RANDOM_SEED      = 42
 
 ### Determine Embedding Dimensions
 
-As with Day 2, we determine the embedding dimensions dynamically from a test embedding and store the result in `EMBEDDING_DIMS`. This value is used when creating the Pinecone index, so the index definition stays in sync with whichever embedding model is in use.
+We'll determine the embedding dimensions dynamically from a test embedding:
 
 ```python
 def get_embedding(text: str) -> list:
@@ -321,7 +321,7 @@ query = 'portable device for travel', max_price = $300
 
 **No joins or aggregations.** Pinecone is not a general-purpose database. There is no way to group results, compute aggregates or join across indexes. If your use case requires these, you will need a second system alongside Pinecone.
 
-**Index deletion on recreation.** Unlike MongoDB where you can clear documents while preserving the index, deleting a Pinecone index removes everything. If you need to reload data, you either upsert into the existing index or delete and recreate it. The `upsert` approach is preferable for production since it avoids downtime.
+**Index deletion on recreation.** Deleting a Pinecone index removes everything. If you need to reload data, you either upsert into the existing index or delete and recreate it. The `upsert` approach is preferable for production since it avoids downtime.
 
 **Serverless vs pod-based indexes.** The free tier uses serverless indexes, which are optimized for variable workloads and scale to zero when idle. Pod-based indexes offer more predictable latency for high-throughput production workloads but come at a fixed cost. For most use cases serverless is the right starting point.
 
