@@ -342,7 +342,7 @@ lb_cursor.execute(f"""
         category  TEXT,
         author    TEXT,
         content   TEXT,
-        embedding vector({EMBEDDING_DIMS})
+        embedding VECTOR({EMBEDDING_DIMS})
     )
 """)
 ```
