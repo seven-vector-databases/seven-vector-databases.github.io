@@ -92,6 +92,20 @@ FRAUD_RATE       = 0.05
 RANDOM_SEED      = 42
 ```
 
+### Determine Embedding Dimensions
+
+We'll determine the embedding dimensions dynamically from a test embedding:
+
+```python
+def get_embedding(text: str) -> list:
+    response = ollama.embeddings(model = LLM_EMBEDDING, prompt = text)
+    return response["embedding"]
+
+test_embedding = get_embedding("suspicious transaction at an electronics merchant")
+EMBEDDING_DIMS = len(test_embedding)
+print(f"Embedding dimensions: {EMBEDDING_DIMS}")
+```
+
 ### Connect to Neo4j AuraDB
 
 We'll suppress deprecation warnings in the driver configuration to keep the output clean. AuraDB currently emits a deprecation notice for `db.index.vector.queryNodes()` - at the time of writing this book, the replacement `VECTOR SEARCH` syntax is not yet supported on the free tier, so we'll use the older procedure and suppress the warning:
