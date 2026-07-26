@@ -87,6 +87,20 @@ RANDOM_SEED                = 42
 
 > **Note:** Databricks Community Edition does not have a `main` catalog. The default catalog is `workspace`. If you see a `NO_SUCH_CATALOG_EXCEPTION` error, check which catalogs are available with `SHOW CATALOGS` and update `CATALOG_NAME` accordingly.
 
+### Determine Embedding Dimensions
+
+We'll determine the embedding dimensions dynamically from a test embedding:
+
+```python
+def get_embedding(text: str) -> list:
+    response = ollama.embeddings(model = LLM_EMBEDDING, prompt = text)
+    return response["embedding"]
+
+test_embedding = get_embedding("internal technical documentation")
+EMBEDDING_DIMS = len(test_embedding)
+print(f"Embedding dimensions: {EMBEDDING_DIMS}")
+```
+
 ### Connect to Databricks
 
 ```python
