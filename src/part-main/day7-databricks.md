@@ -85,6 +85,8 @@ NUM_DOCS                   = 200
 RANDOM_SEED                = 42
 ```
 
+> **Note:** `NUM_DOCS` controls the size of the generated dataset. 200 is the recommended default for this chapter - embedding generation runs locally via Ollama and is single-threaded, so larger values will work but will take proportionally longer. Production pipelines would typically use a hosted embedding endpoint with async or batched generation to handle scale.
+
 > **Note:** Databricks Community Edition does not have a `main` catalog. The default catalog is `workspace`. If you see a `NO_SUCH_CATALOG_EXCEPTION` error, check which catalogs are available with `SHOW CATALOGS` and update `CATALOG_NAME` accordingly.
 
 ### Determine Embedding Dimensions
