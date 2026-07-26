@@ -204,7 +204,7 @@ for job in tqdm(job_listings, desc = "Inserting listings"):
     ))
 ```
 
-### Create a Vector Index
+### Create the Vector Index
 
 `pgvector` supports two index types: `IVFFlat` and `HNSW`. We'll use `HNSW`, which gives better recall and is the recommended default for most workloads. Note that we'll create the index after loading data - building it incrementally during inserts is significantly slower for bulk loads.
 
