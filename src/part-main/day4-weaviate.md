@@ -77,7 +77,7 @@ RANDOM_SEED      = 42
 
 ### Determine Embedding Dimensions
 
-As with previous days, we'll determine the embedding dimensions dynamically from a test embedding:
+We'll determine the embedding dimensions dynamically from a test embedding:
 
 ```python
 def get_embedding(text: str) -> list:
@@ -383,7 +383,7 @@ field = 'Computer Vision', min_year = 2022
 
 **Alpha tuning.** The right `alpha` value depends on the data and query patterns. For queries with specific technical terms, a lower alpha (more BM25) improves recall of papers that contain those exact terms. For more exploratory queries, a higher alpha (more vector) surfaces semantically related content even when the exact terms are absent. Experiment with your own queries to find the right balance.
 
-**Collection limit on free tier.** The free tier allows only one collection per cluster. If you need to reload data, delete the existing collection first using `client.collections.delete(COLLECTION_NAME)` before recreating it. Unlike MongoDB where you can clear documents while preserving the index, deleting a Weaviate collection removes everything including the schema.
+**Collection limit on free tier.** The free tier allows only one collection per cluster. If you need to reload data, delete the existing collection first using `client.collections.delete(COLLECTION_NAME)` before recreating it. Deleting a Weaviate collection removes everything including the schema.
 
 **Batch insert behavior.** Weaviate's `batch.dynamic()` mode adjusts the batch size automatically based on server response times. For large datasets this is more efficient than fixed-size batches. Errors during batch insert are collected rather than raised immediately - check `batch.failed_objects` after the context manager exits to catch any insertion failures.
 
