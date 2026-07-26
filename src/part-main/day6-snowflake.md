@@ -75,6 +75,20 @@ NUM_TICKETS         = 200
 RANDOM_SEED         = 42
 ```
 
+### Determine Embedding Dimensions
+
+We'll determine the embedding dimensions dynamically from a test embedding:
+
+```python
+def get_embedding(text: str) -> list:
+    response = ollama.embeddings(model = LLM_EMBEDDING, prompt = text)
+    return response["embedding"]
+
+test_embedding = get_embedding("customer support ticket about billing issue")
+EMBEDDING_DIMS = len(test_embedding)
+print(f"Embedding dimensions: {EMBEDDING_DIMS}")
+```
+
 ### Connect to Snowflake
 
 ```python
