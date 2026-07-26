@@ -75,6 +75,8 @@ NUM_PAPERS       = 200
 RANDOM_SEED      = 42
 ```
 
+> **Note:** `NUM_PAPERS` controls the size of the generated dataset. 200 is the recommended default for this chapter - embedding generation runs locally via Ollama and is single-threaded, so larger values will work but will take proportionally longer. Production pipelines would typically use a hosted embedding endpoint with async or batched generation to handle scale.
+
 ### Determine Embedding Dimensions
 
 We'll determine the embedding dimensions dynamically from a test embedding:
@@ -149,7 +151,7 @@ Weaviate organizes data in **collections**. Each collection has a defined schema
 
 > **Note** The Weaviate Cloud free tier only supports the `hfresh` vector index type. `HNSW` is not available on the free tier. Use `Configure.VectorIndex.hfresh()` rather than `Configure.VectorIndex.hnsw()`.
 
-> **Note:** The free tier allows only one collection per cluster. If the collection already exists from a previous run, delete it before recreating:
+> **Note:** The free tier allows only one collection per cluster. If the collection already exists from a previous run, delete it before recreating.
 
 ```python
 if client.collections.exists(COLLECTION_NAME):
