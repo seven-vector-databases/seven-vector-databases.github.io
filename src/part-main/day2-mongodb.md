@@ -62,12 +62,6 @@ If you do not already have a cluster:
 9. From the left navigation pane select **NETWORK ACCESS > IP Access List**
 10. Add `0.0.0.0/0` for temporary open access during development
 
-### Create the Vector Search Index
-
-The vector search index is created programmatically in the notebook - no manual steps required in the Atlas UI. The index will only become active once data have been inserted and the embeddings are present.
-
-> **Note:** The collection must exist before the vector index can be created. On each run we drop the index first, then clear the documents with `delete_many({})`, before recreating the index programmatically.
-
 ### Configuration
 
 We'll set the `MONGODB_URI` environment variable before running the notebook:
@@ -89,6 +83,20 @@ RANDOM_SEED   = 42
 ```
 
 > **Note:** `NUM_RECIPES` controls the size of the generated dataset. 200 is the recommended default for this chapter - embedding generation runs locally via Ollama and is single-threaded, so larger values will work but will take proportionally longer. At 1,000 recipes expect a few minutes, at 20,000 expect significantly longer. Production pipelines would typically use a hosted embedding endpoint with async or batched generation to handle scale.
+
+### Determine Embedding Dimensions
+
+We'll determine the embedding dimensions dynamically from a test embedding:
+
+```python
+def get_embedding(text: str) -> list:
+    response = ollama.embeddings(model = LLM_EMBEDDING, prompt = text)
+    return response["embedding"]
+
+test_embedding = get_embedding("a warm spicy dish with chicken")
+EMBEDDING_DIMS = len(test_embedding)
+print(f"Embedding dimensions: {EMBEDDING_DIMS}")
+```
 
 ### Generate the Dataset
 
@@ -138,14 +146,6 @@ recipes = [generate_recipe() for _ in range(NUM_RECIPES)]
 We'll embed each recipe description and store the vector as an `embedding` field on the document:
 
 ```python
-def get_embedding(text: str) -> list:
-    response = ollama.embeddings(model = LLM_EMBEDDING, prompt = text)
-    return response["embedding"]
-
-test_embedding = get_embedding("a warm spicy dish with chicken")
-EMBEDDING_DIMS = len(test_embedding)
-print(f"Embedding dimensions: {EMBEDDING_DIMS}")
-
 collection.drop_search_index(INDEX_NAME)
 collection.delete_many({})
 
