@@ -75,6 +75,8 @@ NUM_TICKETS         = 200
 RANDOM_SEED         = 42
 ```
 
+> **Note:** `NUM_TICKETS` controls the size of the generated dataset. 200 is the recommended default for this chapter - embedding generation runs locally via Ollama and is single-threaded, so larger values will work but will take proportionally longer. Production pipelines would typically use a hosted embedding endpoint with async or batched generation to handle scale.
+
 ### Determine Embedding Dimensions
 
 We'll determine the embedding dimensions dynamically from a test embedding:
