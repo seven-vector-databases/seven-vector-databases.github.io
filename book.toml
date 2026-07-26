@@ -2,7 +2,7 @@
 authors = ["Akmal Chaudhri"]
 language = "en"
 src = "src"
-title = "Seven Vector Databases"
+title = "Seven Vector Databases in Seven Days"
 description = "In Seven Days"
 
 [output.html]
