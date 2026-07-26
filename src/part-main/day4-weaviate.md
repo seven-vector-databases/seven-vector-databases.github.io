@@ -57,7 +57,7 @@ If you do not already have a cluster:
 
 ### Configuration
 
-We'll set the following Weaviate environment variables before running the notebook:
+We'll set the following environment variables before running the notebook:
 
 ```bash
 export WEAVIATE_URL="your-cluster-name.c0.region.cloud-provider.weaviate.cloud"
