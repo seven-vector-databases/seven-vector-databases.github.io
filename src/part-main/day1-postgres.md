@@ -76,6 +76,20 @@ NUM_JOBS      = 500
 RANDOM_SEED   = 42
 ```
 
+### Determine Embedding Dimensions
+
+We'll determine the embedding dimensions dynamically from a test embedding:
+
+```python
+def get_embedding(text: str) -> list:
+    response = ollama.embeddings(model = LLM_EMBEDDING, prompt = text)
+    return response["embedding"]
+
+test_embedding = get_embedding("senior data engineer with Python and Spark")
+EMBEDDING_DIMS = len(test_embedding)
+print(f"Embedding dimensions: {EMBEDDING_DIMS}")
+```
+
 ### Connect to PostgreSQL and Enable pgvector
 
 ```python
