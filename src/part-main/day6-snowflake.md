@@ -51,7 +51,9 @@ To follow along you'll need:
 
 > **Note:** Snowflake offers a managed vector search service called Cortex Search, which handles embedding generation internally. However, the embedding functions it relies on are not available on trial accounts. For this chapter we use Ollama to generate embeddings locally and store them in Snowflake using the native `VECTOR` data type, which is available on all account types.
 
-### Set Environment Variables
+### Configuration
+
+We'll set the following environment variables before running the notebook:
 
 ```bash
 export SNOWFLAKE_ACCOUNT="your-account-identifier"
@@ -59,7 +61,7 @@ export SNOWFLAKE_USER="your-username"
 export SNOWFLAKE_PASSWORD="your-password"
 ```
 
-### Configuration
+Then in the notebook:
 
 ```python
 SNOWFLAKE_ACCOUNT   = os.environ["SNOWFLAKE_ACCOUNT"]
