@@ -48,7 +48,7 @@ To follow along you will need:
 
 ### Configuration
 
-We'll set the `PINECONE_API_KEY` environment variable before running the notebook:
+We'll set the following environment variable before running the notebook:
 
 ```bash
 export PINECONE_API_KEY="your-api-key-here"
