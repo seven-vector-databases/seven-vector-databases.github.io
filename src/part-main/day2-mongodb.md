@@ -64,7 +64,7 @@ If you do not already have a cluster:
 
 ### Configuration
 
-We'll set the `MONGODB_URI` environment variable before running the notebook:
+We'll set the following environment variable before running the notebook:
 
 ```bash
 export MONGODB_URI="mongodb+srv://<username>:<password>@<cluster>.mongodb.net"
