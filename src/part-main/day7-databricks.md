@@ -63,7 +63,9 @@ To follow along you'll need:
 2. Click your warehouse and select **Connection details**
 3. Note down the **Server hostname** and **HTTP path**
 
-### Set Environment Variables
+### Configuration
+
+We'll set the following environment variables before running the notebook:
 
 ```bash
 export DATABRICKS_SERVER_HOSTNAME="dbc-xxxx.cloud.databricks.com"
@@ -71,7 +73,7 @@ export DATABRICKS_HTTP_PATH="/sql/1.0/warehouses/xxxx"
 export DATABRICKS_TOKEN="your-personal-access-token"
 ```
 
-### Configuration
+Then in the notebook:
 
 ```python
 DATABRICKS_SERVER_HOSTNAME = os.environ["DATABRICKS_SERVER_HOSTNAME"]
@@ -156,7 +158,7 @@ df["EMBEDDING"] = [str(e) for e in embeddings]
 
 We'll create a Delta table and load all documents in a single bulk `INSERT`. The embedding is stored as a `STRING` column rather than a native vector type, for reasons explained below.
 
-> **Note:** Inserting one row per document over a network connection to Databricks is extremely slow - each `cursor.execute()` call is a separate round trip. Concatenating all rows into a single `VALUES` clause and sending one SQL statement is significantly faster:
+> **Note:** Inserting one row per document over a network connection to Databricks is extremely slow - each `cursor.execute()` call is a separate round trip. Concatenating all rows into a single `VALUES` clause and sending one SQL statement is significantly faster.
 
 ```python
 values = []
@@ -184,7 +186,7 @@ Note that single quotes in text fields must be escaped before interpolation into
 
 We'll embed the query with Ollama and pass it to Databricks SQL as a parameter. `VECTOR_COSINE_SIMILARITY` computes cosine similarity between the stored embedding and the query embedding.
 
-> **Note:** The Databricks SQL connector does not support inserting data directly into a `VECTOR` typed column, so we'll store embeddings as `STRING`. At query time, `FROM_JSON` parses the string into an `ARRAY<FLOAT>` which `VECTOR_COSINE_SIMILARITY` can operate on. Both the stored embedding and the query embedding need this cast:
+> **Note:** The Databricks SQL connector does not support inserting data directly into a `VECTOR` typed column, so we'll store embeddings as `STRING`. At query time, `FROM_JSON` parses the string into an `ARRAY<FLOAT>` which `VECTOR_COSINE_SIMILARITY` can operate on. Both the stored embedding and the query embedding need this cast.
 
 ```python
 def search_docs(query: str, top_k: int = 5):
@@ -307,6 +309,27 @@ Databricks Lakebase is a fully managed Postgres database integrated directly int
 
 This is significant for the book's story. Day 1 started with `pgvector` on a local Postgres install. Day 7 ends with `pgvector` running inside the Databricks lakehouse as a fully managed service. The underlying technology is the same; the operational context is completely different.
 
+### Configuration
+
+We'll set the following environment variables before running the notebook:
+
+```bash
+export LAKEBASE_HOST="ep-xxxx.database.xxxx.cloud.databricks.com"
+export LAKEBASE_USER="your-email-address"
+export LAKEBASE_TOKEN="your-oauth-token"
+export LAKEBASE_DBNAME="databricks_postgres"
+```
+
+Then in the notebook:
+
+```python
+LAKEBASE_HOST   = os.environ["LAKEBASE_HOST"]
+LAKEBASE_USER   = os.environ["LAKEBASE_USER"]
+LAKEBASE_TOKEN  = os.environ["LAKEBASE_TOKEN"]
+LAKEBASE_DBNAME = os.environ["LAKEBASE_DBNAME"]
+LAKEBASE_TABLE  = "wiki_documents"
+```
+
 ### Connecting to Lakebase
 
 Lakebase uses standard Postgres drivers. We'll connect with `psycopg2` using an OAuth token obtained from the Lakebase Connect dialog in the Databricks UI:
@@ -322,7 +345,7 @@ lb_conn = psycopg2.connect(
 )
 ```
 
-The OAuth token expires after one hour. For production use, the recommended approach is OAuth token rotation via a Databricks service principal and the `generate_database_credential()` method from the Databricks SDK, which generates a fresh token for each new connection automatically.
+> **Note:** The `OAuth` token expires after one hour. For production use, the recommended approach is `OAuth` token rotation via a Databricks service principal and the `generate_database_credential()` method from the Databricks SDK, which generates a fresh token for each new connection automatically.
 
 ### pgvector on Lakebase
 
