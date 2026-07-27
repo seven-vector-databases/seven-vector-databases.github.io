@@ -329,6 +329,124 @@ No second system, no result merging, no data movement. The semantic search and t
 
 **Warehouse size for large datasets.** At 200 tickets an `X-SMALL` warehouse is more than sufficient. For larger datasets or faster query times, increase the warehouse size. Snowflake auto-scales compute independently of storage, so you can use a larger warehouse for bulk embedding inserts and scale back down for queries.
 
+**Snowflake Postgres and pgvector.** For applications that need low-latency reads and full Postgres semantics alongside Snowflake data, Snowflake Postgres provides a fully managed Postgres with `pgvector` integrated directly into the platform. See the Snowflake Postgres section below for a working example.
+
+## Snowflake Postgres - pgvector Inside the Data Platform
+
+Snowflake Postgres is a fully managed Postgres database integrated directly into the Snowflake platform, available under **Manage > Postgres** in the Snowflake UI. It is powered by the Crunchy Data acquisition and brings standard Postgres with `pgvector` into the data platform context, alongside Snowflake tables, warehouses and governance features.
+
+Unlike the `VECTOR_COSINE_SIMILARITY` approach used earlier in this chapter, Snowflake Postgres uses the native `pgvector` `<=>` cosine distance operator. The connection uses a static password, making it simpler to work with from a notebook.
+
+### Configuration
+
+We'll set the following environment variables before running the notebook:
+
+```bash
+export SNOWFLAKE_PG_HOST="your-instance.eu-west-2.aws.postgres.snowflake.app"
+export SNOWFLAKE_PG_USER="snowflake_admin"
+export SNOWFLAKE_PG_PASSWORD="your-password"
+export SNOWFLAKE_PG_DBNAME="postgres"
+```
+
+Then in the notebook:
+
+```python
+SNOWFLAKE_PG_HOST     = os.environ["SNOWFLAKE_PG_HOST"]
+SNOWFLAKE_PG_USER     = os.environ["SNOWFLAKE_PG_USER"]
+SNOWFLAKE_PG_PASSWORD = os.environ["SNOWFLAKE_PG_PASSWORD"]
+SNOWFLAKE_PG_DBNAME   = os.environ["SNOWFLAKE_PG_DBNAME"]
+SNOWFLAKE_PG_TABLE    = "support_tickets"
+```
+
+### Connecting to Snowflake Postgres
+
+Snowflake Postgres uses standard Postgres drivers. We'll connect with `psycopg2` using the static password from the connection string:
+
+```python
+pg_conn = psycopg2.connect(
+    host     = SNOWFLAKE_PG_HOST,
+    user     = SNOWFLAKE_PG_USER,
+    password = SNOWFLAKE_PG_PASSWORD,
+    dbname   = SNOWFLAKE_PG_DBNAME,
+    sslmode  = "require",
+    port     = 5432
+)
+
+pg_conn.autocommit = True
+pg_cursor = pg_conn.cursor()
+```
+
+### pgvector on Snowflake Postgres
+
+`pgvector` is available on Snowflake Postgres and is enabled programmatically in the notebook:
+
+```python
+pg_cursor.execute("CREATE EXTENSION IF NOT EXISTS vector;")
+```
+
+### Native Vector Column
+
+Snowflake Postgres supports the native vector type directly. There is no `TRY_PARSE_JSON` cast required - embeddings are stored and queried as proper vector columns, unlike the `VARCHAR` approach used with the main Snowflake connector earlier in this chapter:
+
+```python
+pg_cursor.execute(f"""
+    CREATE TABLE {SNOWFLAKE_PG_TABLE} (
+        ticket_id   TEXT PRIMARY KEY,
+        category    TEXT,
+        priority    TEXT,
+        status      TEXT,
+        product     TEXT,
+        description TEXT,
+        resolution  TEXT,
+        embedding   VECTOR({EMBEDDING_DIMS})
+    )
+""")
+```
+
+We'll reuse the embeddings already generated earlier in the notebook - no additional Ollama calls needed. An `HNSW` index is created after loading for fast similarity search:
+
+```python
+pg_cursor.execute(f"""
+    CREATE INDEX ON {SNOWFLAKE_PG_TABLE}
+    USING hnsw (embedding vector_cosine_ops)
+""")
+```
+
+Queries use the `<=>` cosine distance operator - identical to Day 1:
+
+```python
+def search_snowflake_pg(query: str, top_k: int = 5):
+    query_embedding = get_embedding(query)
+    pg_cursor.execute(f"""
+        SELECT
+            ticket_id,
+            category,
+            priority,
+            status,
+            product,
+            description,
+            resolution,
+            1 - (embedding <=> %s::vector) AS similarity
+        FROM {SNOWFLAKE_PG_TABLE}
+        ORDER BY embedding <=> %s::vector
+        LIMIT %s
+    """, (str(query_embedding), str(query_embedding), top_k))
+```
+
+Sample output:
+
+```text
+Snowflake Postgres query: 'customer cannot log in after forgetting their password'
+
+  TKT00121 | Account | Medium | Open
+  Product: AnalyticsDash
+  Similarity: 0.714
+  Description: Customer has forgotten their password and is not receiving
+  the password reset email in their inbox.
+```
+
+The connection, the vector column and the `<=>` operator are all standard Postgres and `pgvector` - the same as Day 1. What has changed is the operational context: the database is fully managed and lives inside the Snowflake platform alongside tables, warehouses and governance features.
+
 ## When to Look Elsewhere
 
 Snowflake is the right choice when your data are already there. Consider alternatives if:
