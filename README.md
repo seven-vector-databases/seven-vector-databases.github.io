@@ -1,2 +1,2 @@
 # seven-vector-databases.github.io
-In Seven Days
+Seven Vector Databases in Seven Days
