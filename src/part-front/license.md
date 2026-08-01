@@ -54,4 +54,4 @@ Examples are provided solely to illustrate technical concepts, database patterns
 
 Readers are responsible for independently validating all code, configurations and recommendations before using them in production environments.
 
-To the fullest extent permitted by law, the author shall not be liable for any direct, indirect, incidental, special, consequential or other damages arising from the use of, or inability to use, the information, code or techniques described in this book.
+To the fullest extent permitted by law, the author shall not be liable for any direct, indirect, incidental, special, consequential or other damages arising from the use of or inability to use, the information, code or techniques described in this book.
