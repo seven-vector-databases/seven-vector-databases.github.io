@@ -262,7 +262,7 @@ Query: 'I want to work on machine learning models in production'
 
 ### The Relational Advantage - Filtered Search
 
-This is where Postgres genuinely earns its place. We combine semantic similarity with standard SQL filters in a single query. The key subtlety in the implementation is parameter ordering - the first embedding parameter appears in the `SELECT` clause, the filter parameters follow in the `WHERE` clause, and the second embedding parameter appears in the `ORDER BY`. Getting this wrong produces an `InvalidTextRepresentation` error as Postgres tries to interpret an embedding string as an integer.
+This is where Postgres genuinely earns its place. We combine semantic similarity with standard SQL filters in a single query. The key subtlety in the implementation is parameter ordering - the first embedding parameter appears in the `SELECT` clause, the filter parameters follow in the `WHERE` clause and the second embedding parameter appears in the `ORDER BY`. Getting this wrong produces an `InvalidTextRepresentation` error as Postgres tries to interpret an embedding string as an integer.
 
 ```python
 def search_jobs_filtered(query: str, location: str = None, min_salary: int = None, top_k: int = 5):
@@ -342,4 +342,4 @@ The SQL filter and the vector similarity operate together in a single round trip
 - Your team has no existing Postgres footprint and no appetite for managing it. The operational simplicity argument only holds if Postgres is already in your stack.
 - You need built-in embedding model integrations, multi-tenancy, namespacing or other features that dedicated vector databases provide out of the box.
 
-For most applications - particularly those already running on Postgres - `pgvector` is the right place to start. It is free, battle-tested and keeps your architecture simple. The chapters that follow explore what you gain by moving to a dedicated vector database, and when that trade-off is worth making.
+For most applications - particularly those already running on Postgres - `pgvector` is the right place to start. It is free, battle-tested and keeps your architecture simple. The chapters that follow explore what you gain by moving to a dedicated vector database and when that trade-off is worth making.
