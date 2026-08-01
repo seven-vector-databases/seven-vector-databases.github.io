@@ -4,7 +4,7 @@
 
 Pinecone is a fully managed, purpose-built vector database. Unlike Day 1 and Day 2, where vector search was an extension or add-on to an existing database, Pinecone exists solely to store and search vectors. There is no relational layer, no document model and no infrastructure to manage - just an API.
 
-This is a deliberate design choice. Pinecone's thesis is that vector search is a distinct enough problem to warrant its own dedicated system, and that the operational overhead of running and tuning a general-purpose database is unnecessary friction when all you need is similarity search. You provision an index, upsert vectors, query them and let Pinecone handle everything else.
+This is a deliberate design choice. Pinecone's thesis is that vector search is a distinct enough problem to warrant its own dedicated system and that the operational overhead of running and tuning a general-purpose database is unnecessary friction when all you need is similarity search. You provision an index, upsert vectors, query them and let Pinecone handle everything else.
 
 Pinecone organizes vectors in **indexes**. Each index stores vectors of a fixed dimension alongside optional **metadata** - structured fields like category, price or brand that can be used for filtering at query time. There are no tables, no collections and no schemas. The data model is intentionally minimal: an `id`, a vector and a metadata dictionary.
 
@@ -336,4 +336,4 @@ Pinecone is an excellent choice for pure vector search with metadata filtering. 
 - You need full control over your infrastructure. Pinecone is fully managed and closed-source. If data residency, self-hosting or auditability are requirements, a self-hosted alternative may be a better fit.
 - Your metadata filtering requirements are complex. For highly selective filters on many fields, the pre-filtering approach can return too few candidates, degrading recall. Dedicated filtering systems handle this more gracefully.
 
-For teams that want managed simplicity and are building a use case that is genuinely about similarity search, Pinecone is hard to beat. The operational overhead is close to zero and the API is clean and well-documented. The question is whether your use case is pure enough to justify a dedicated system, or whether an existing database with vector support is the simpler path.
+For teams that want managed simplicity and are building a use case that is genuinely about similarity search, Pinecone is hard to beat. The operational overhead is close to zero and the API is clean and well-documented. The question is whether your use case is pure enough to justify a dedicated system or whether an existing database with vector support is the simpler path.
