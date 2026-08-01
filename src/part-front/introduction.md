@@ -6,7 +6,7 @@ Something changed in software development around 2022. Applications began needin
 
 A vector embedding is a list of numbers - typically hundreds or thousands of them - that encodes the semantic meaning of a piece of text, an image or any other content. Two pieces of content with similar meanings will have embeddings that are close together in vector space, even if they share no words in common. This property is what makes it possible to ask "find me jobs related to building machine learning models in production" and get back relevant results even when the job listings use entirely different vocabulary.
 
-Vector databases are systems built to store these embeddings and search across them efficiently. Some are purpose-built for the task. Others are general-purpose databases that have added vector search as a capability. The field has expanded rapidly, and evaluating the options is now a real problem for teams building AI-powered features.
+Vector databases are systems built to store these embeddings and search across them efficiently. Some are purpose-built for the task. Others are general-purpose databases that have added vector search as a capability. The field has expanded rapidly and evaluating the options is now a real problem for teams building AI-powered features.
 
 ## What This Book Is About
 
