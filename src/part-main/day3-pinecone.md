@@ -51,7 +51,7 @@ To follow along you will need:
 We'll set the following environment variable before running the notebook:
 
 ```bash
-export PINECONE_API_KEY="your-api-key-here"
+export PINECONE_API_KEY="your-api-key"
 ```
 
 Then in the notebook:
