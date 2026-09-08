@@ -13,13 +13,13 @@
 
 # Seven Days
 
-- [Day 1: PostgreSQL + pgvector](part-main/day1-postgres.md)
-- [Day 2: MongoDB Atlas](part-main/day2-mongodb.md)
-- [Day 3: Pinecone](part-main/day3-pinecone.md)
-- [Day 4: Weaviate](part-main/day4-weaviate.md)
-- [Day 5: Neo4j](part-main/day5-neo4j.md)
-- [Day 6: Snowflake](part-main/day6-snowflake.md)
-- [Day 7: Databricks](part-main/day7-databricks.md)
+- [Day 1: PostgreSQL + pgvector](part-main/01-postgres.md)
+- [Day 2: MongoDB Atlas](part-main/02-mongodb.md)
+- [Day 3: Pinecone](part-main/03-pinecone.md)
+- [Day 4: Weaviate](part-main/04-weaviate.md)
+- [Day 5: Neo4j](part-main/05-neo4j.md)
+- [Day 6: Snowflake](part-main/06-snowflake.md)
+- [Day 7: Databricks](part-main/07-databricks.md)
 
 # Conclusions
 
