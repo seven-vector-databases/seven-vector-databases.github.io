@@ -317,7 +317,7 @@ The two fraudulent accounts surface together through their shared device - exact
 
 A network visualization makes the fraud ring structure immediately obvious. We use `networkx` for graph layout and `plotly` for interactive rendering.
 
-![](05-neo4j-media/figure1.png)
+![](05-neo4j-media/image1.png)
 
 *Figure 5-1. Fraud Ring Network Plot.*
 
@@ -330,7 +330,7 @@ The key insight from the visualization is the two-cluster structure. `ACC0007` a
 
 The device sharing bar chart, shown in Figure 5-2, reinforces this with aggregated data. `DEV_FRAUD_002` stands out as a pure red bar - two accounts sharing it, both fraudulent. `DEV_LEGIT_071` and `DEV_LEGIT_086` show mixed signal with one fraudulent account each - realistic noise that a production system would need to investigate further. All other shared devices are exclusively legitimate.
 
-![](05-neo4j-media/figure2.png)
+![](05-neo4j-media/image2.png)
 
 *Figure 5-2. Device Sharing.*
 
