@@ -10,7 +10,7 @@ Snowflake's vector support consists of two main pieces. The `VECTOR` data type s
 
 ## When Would You Reach for It?
 
-The clearest signal is existing data in Snowflake. If your organization's data is already in Snowflake - and for many data engineering and analytics teams it is - adding semantic search is a matter of storing embeddings in a new column and writing a SQL query. There is no new system to provision, no data to move and no synchronization to maintain.
+The clearest signal is existing data in Snowflake. If your organization's data are already in Snowflake - and for many data engineering and analytics teams it is - adding semantic search is a matter of storing embeddings in a new column and writing a SQL query. There is no new system to provision, no data to move and no synchronization to maintain.
 
 The second signal is a SQL-native team. Data engineers and analysts who already work in Snowflake will find `VECTOR_COSINE_SIMILARITY` immediately familiar. It slots into existing query patterns, works alongside standard `WHERE` clauses, `GROUP BY` aggregations and window functions and integrates naturally with Snowflake's access control and governance features.
 
