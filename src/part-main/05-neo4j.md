@@ -378,7 +378,7 @@ Devices shared between multiple accounts:
 
 Neo4j is the right choice when relationships are central to your problem. Consider alternatives if:
 
-- Your data is not highly connected. If your use case is primarily about finding similar items without traversing networks of entities, a simpler vector database from earlier chapters will serve you better with less operational overhead.
+- Your data are not highly connected. If your use case is primarily about finding similar items without traversing networks of entities, a simpler vector database from earlier chapters will serve you better with less operational overhead.
 - You need pure vector search at very large scale. Neo4j's vector index is capable, but purpose-built vector databases are optimized specifically for high-throughput similarity search at hundreds of millions of vectors.
 - Your team has no graph database experience. The Cypher query language is learnable, but the graph data modeling mindset - thinking in nodes and relationships rather than tables or documents - requires an adjustment. Factor in the learning curve.
 - You need GDS algorithms on a managed cloud service. The AuraDB free tier does not include the Graph Data Science library. If community detection, PageRank or shortest path algorithms are central to your use case, you need either a paid AuraDB tier or a self-hosted deployment.
