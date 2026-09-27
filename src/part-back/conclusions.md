@@ -12,7 +12,7 @@ The notebooks are real. The gotchas are real. The "when to look elsewhere" secti
 
 The most consistent theme across all seven chapters is data gravity. The best vector database for your use case is often the one that already holds your data.
 
-If your application runs on Postgres, `pgvector` is one command away. If your data is in MongoDB, Atlas Vector Search is a field on your existing documents. If your analytics team lives in Snowflake or Databricks, `VECTOR_COSINE_SIMILARITY` is a SQL function call. Adding a dedicated vector database to a stack that already has one of these systems means synchronization, dual writes and operational overhead. That overhead is only justified if the dedicated system offers something genuinely unavailable in what you already have.
+If your application runs on Postgres, `pgvector` is one command away. If your data are in MongoDB, Atlas Vector Search is a field on your existing documents. If your analytics team lives in Snowflake or Databricks, `VECTOR_COSINE_SIMILARITY` is a SQL function call. Adding a dedicated vector database to a stack that already has one of these systems means synchronization, dual writes and operational overhead. That overhead is only justified if the dedicated system offers something genuinely unavailable in what you already have.
 
 ### Purpose-built databases earn their place at scale and in specific scenarios
 
@@ -48,7 +48,7 @@ Rather than a ranking, here is a practical decision guide based on what we learn
 
 **Reach for Neo4j when connections are the signal.** If the interesting questions in your domain involve networks of entities - fraud rings, recommendation graphs, knowledge graphs, supply chains - graph traversal combined with vector search is a capability that no relational or document database can replicate naturally.
 
-**Stay in the data platform when your data is already there.** For Snowflake and Databricks users, `VECTOR_COSINE_SIMILARITY` brings semantic search to existing tables without new infrastructure. The full-scan limitation is real but manageable at the scales where teams are typically starting out.
+**Stay in the data platform when your data are already there.** For Snowflake and Databricks users, `VECTOR_COSINE_SIMILARITY` brings semantic search to existing tables without new infrastructure. The full-scan limitation is real but manageable at the scales where teams are typically starting out.
 
 ## What Comes Next
 
