@@ -361,11 +361,11 @@ This works because `ingredients` is a native array field on the document. MongoD
 
 ## When to Look Elsewhere
 
-MongoDB Atlas is a strong choice when your application already runs on MongoDB or when your data is naturally document-shaped. Consider a dedicated vector database if:
+MongoDB Atlas is a strong choice when your application already runs on MongoDB or when your data are naturally document-shaped. Consider a dedicated vector database if:
 
 - You have no existing MongoDB footprint and no other reason to run it. The operational simplicity argument only holds if MongoDB is already in your stack.
 - You need the highest possible vector search performance at very large scale. Dedicated vector databases are built exclusively around this problem and can outperform a general-purpose database with vector search added on.
-- Your data are highly relational with many joins. MongoDB handles references between documents, but deeply relational data is more naturally expressed in a relational database.
+- Your data are highly relational with many joins. MongoDB handles references between documents, but deeply relational data are more naturally expressed in a relational database.
 - You need advanced vector index configuration beyond what Atlas exposes. Dedicated vector databases offer more granular control over index parameters, distance metrics and quantization.
 
 For teams already building on MongoDB, Atlas Vector Search is the natural path - it keeps the stack simple and lets vector search grow with the application without introducing a second system to operate.
