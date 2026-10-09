@@ -1,4 +1,4 @@
-# Seven Vector Databases in Seven Days
+# Welcome
 
 ## How to Cite This Book
 
