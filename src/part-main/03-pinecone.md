@@ -2,25 +2,25 @@
 
 ## What Is It?
 
-Pinecone is a fully managed, purpose-built vector database. Unlike Day 1 and Day 2, where vector search was an extension or add-on to an existing database, Pinecone exists solely to store and search vectors. There is no relational layer, no document model and no infrastructure to manage - just an API.
+Pinecone is a fully managed, purpose-built vector database. Unlike Day 1 and Day 2, where vector search was an extension or add-on to an existing database, Pinecone exists solely to store and search vectors. There's no relational layer, no document model and no infrastructure to manage - just an API.
 
 This is a deliberate design choice. Pinecone's thesis is that vector search is a distinct enough problem to warrant its own dedicated system and that the operational overhead of running and tuning a general-purpose database is unnecessary friction when all you need is similarity search. You provision an index, upsert vectors, query them and let Pinecone handle everything else.
 
-Pinecone organizes vectors in **indexes**. Each index stores vectors of a fixed dimension alongside optional **metadata** - structured fields like category, price or brand that can be used for filtering at query time. There are no tables, no collections and no schemas. The data model is intentionally minimal: an `id`, a vector and a metadata dictionary.
+Pinecone organizes vectors in **indexes**. Each index stores vectors of a fixed dimension alongside optional **metadata** - structured fields like category, price or brand that can be used for filtering at query time. There are no tables and no schemas. The data model is intentionally minimal: an `id`, a vector and a metadata dictionary.
 
 ## When Would You Reach for It?
 
 The clearest signal is a pure vector search use case with no need for a broader data model. If your application needs to find similar items - products, documents, images, user profiles - and the structured filtering you need can be expressed as metadata on the vector record, Pinecone is a strong fit.
 
-The second signal is managed simplicity. Pinecone requires no infrastructure decisions, no index tuning and no operational runbook. You do not choose instance sizes, manage disk or worry about replication. For teams that want vector search without a dedicated infrastructure engineer, this is the value proposition.
+The second signal is managed simplicity. Pinecone requires no infrastructure decisions, no index tuning and no operational runbook. You don't choose instance sizes, manage disk or worry about replication. For teams that want vector search without a dedicated infrastructure engineer, this is the value proposition.
 
 The third signal is scale. Pinecone is built to handle hundreds of millions of vectors with consistent low-latency retrieval. If your use case will grow beyond what a general-purpose database with a vector extension can handle, Pinecone is designed for that ceiling.
 
 ## The Use Case
 
-For this chapter we'll build a semantic product search engine for an electronics store. Users describe what they are looking for in natural language - "a laptop for video editing under $1,500" or "noise canceling headphones for travel" - and get relevant products in return.
+For this chapter we'll build a semantic product search engine for an electronics store. Users describe what they're looking for in natural language - "a laptop for video editing under $1500" or "noise canceling headphones for travel" - and get relevant products in return.
 
-This is a natural fit for Pinecone. Product search is a pure similarity problem: given a query, find the most semantically relevant items. The structured constraints a user might apply - category, price ceiling, performance tier - map naturally to Pinecone's metadata filtering. There is no relational data to join, no document hierarchy to navigate and no schema to maintain.
+This is a natural fit for Pinecone. Product search is a pure similarity problem: given a query, find the most semantically relevant items. The structured constraints a user might apply - category, price ceiling, performance tier - map naturally to Pinecone's metadata filtering. There's no relational data to join, no document hierarchy to navigate and no schema to maintain.
 
 ## The Data
 
@@ -40,7 +40,7 @@ The key fields are:
 
 ### Prerequisites
 
-To follow along you will need:
+To follow along you'll need:
 
 - A Pinecone account with an API key
 - Ollama running locally with the `all-minilm` model pulled
@@ -235,18 +235,32 @@ search_products("noise canceling headphones for travel")
 
 Query: 'noise canceling headphones for travel'
 
-  CloudSync Headphones 979 (Headphones)
-  $50 | mid-range | Score: 0.732
-  The CloudSync Headphones is a mid-range option for travelers, offering wireless connectivity and foldable design.
+  SoundWave Headphones 529 (Headphones)
+  $150 | flagship | Score: 0.649
+  A flagship Headphones with active noise cancellation and foldable design, perfect for business users.
+
+  VisionCore Headphones 803 (Headphones)
+  $460 | entry-level | Score: 0.621
+  A entry-level Headphones with active noise cancellation and foldable design, perfect for content creators.
 
   VisionCore Headphones 777 (Headphones)
-  $180 | high-performance | Score: 0.721
+  $180 | high-performance | Score: 0.616
   A high-performance Headphones with active noise cancellation and wireless connectivity, perfect for home entertainment.
+
+  ZenTech Headphones 678 (Headphones)
+  $260 | flagship | Score: 0.609
+  A flagship Headphones with foldable design and active noise cancellation, perfect for everyday use.
+
+  ClearView Headphones 448 (Headphones)
+  $410 | flagship | Score: 0.566
+  Ideal for gamers, this Headphones combines active noise cancellation with wireless connectivity in a flagship package.
 ```
+
+The embedding captures what a query means, not arithmetic. The notebook also runs "a laptop for video editing under $1500", and two of its five results cost more than that ($1,600 and $2,420). A price ceiling needs a metadata filter, which is what we turn to next.
 
 ### Filtered Search
 
-Pinecone supports metadata filtering at query time using a MongoDB-style filter syntax. Filters are applied before the vector search, meaning only matching records are considered as candidates. This is the same pre-filtering approach we saw in MongoDB Atlas on Day 2.
+Pinecone supports metadata filtering at query time using a MongoDB-style filter syntax. The filter is applied as part of the search itself, which Pinecone calls single-stage filtering, so every result satisfies the filter. The effect is similar to the pre-filtering we saw in MongoDB Atlas on Day 2.
 
 ```python
 def search_products_filtered(
@@ -274,7 +288,7 @@ def search_products_filtered(
     )
 ```
 
-A filtered search for high-performance laptops for creative work:
+A filtered search for high-performance laptops for creative work (the notebook returns more results than shown here, so we show the top two):
 
 ```text
 search_products_filtered(
@@ -294,7 +308,7 @@ query = 'laptop for video editing and creative work', category = 'Laptop', perfo
   A high-performance Laptop designed for students, featuring high-resolution display and fast SSD storage.
 ```
 
-And a cross-category search with a strict price cap:
+And a cross-category search with a strict price cap (again showing the top two results):
 
 ```text
 search_products_filtered(
@@ -319,13 +333,13 @@ query = 'portable device for travel', max_price = $300
 
 **Metadata storage costs.** Every piece of metadata stored alongside a vector counts toward your storage usage. For large datasets with rich metadata, this can add up. Store only what you need for filtering and display.
 
-**No joins or aggregations.** Pinecone is not a general-purpose database. There is no way to group results, compute aggregates or join across indexes. If your use case requires these, you will need a second system alongside Pinecone.
+**No joins or aggregations.** Pinecone isn't a general-purpose database. There is no way to group results, compute aggregates or join across indexes. If your use case requires these, you'll need a second system alongside Pinecone.
 
 **Index deletion on recreation.** Deleting a Pinecone index removes everything. If you need to reload data, you either upsert into the existing index or delete and recreate it. The `upsert` approach is preferable for production since it avoids downtime.
 
-**Serverless vs pod-based indexes.** The free tier uses serverless indexes, which are optimized for variable workloads and scale to zero when idle. Pod-based indexes offer more predictable latency for high-throughput production workloads but come at a fixed cost. For most use cases serverless is the right starting point.
+**Serverless vs pod-based indexes.** The free tier uses serverless indexes, which are optimized for variable workloads and scale with usage. Pod-based indexes offer more predictable latency for high-throughput production workloads but come at a fixed cost. For most use cases serverless is the right starting point.
 
-**Free tier limits.** The free tier allows one project with up to five serverless indexes and a total of 2GB of storage. This is sufficient for development and small production workloads.
+**Free tier limits.** The free tier is the Starter plan, which allows one project with up to five serverless indexes and a total of 2GB of storage. It's limited to AWS `us-east-1`, which is why the notebook uses that cloud and region. This is sufficient for development and small production workloads.
 
 ## When to Look Elsewhere
 
@@ -334,6 +348,6 @@ Pinecone is an excellent choice for pure vector search with metadata filtering. 
 - You already have data in PostgreSQL or MongoDB. Adding a dedicated vector database introduces a second system to operate and a synchronization problem to solve. Days 1 and 2 showed that both can handle vector search natively.
 - You need relational queries, aggregations or joins. Pinecone has no query language beyond vector search and metadata filtering.
 - You need full control over your infrastructure. Pinecone is fully managed and closed-source. If data residency, self-hosting or auditability are requirements, a self-hosted alternative may be a better fit.
-- Your metadata filtering requirements are complex. For highly selective filters on many fields, the pre-filtering approach can return too few candidates, degrading recall. Dedicated filtering systems handle this more gracefully.
+- Your metadata filtering requirements are complex. Pinecone's filters use comparison, set membership and logical operators on individual metadata fields, so elaborate filtering logic is better served by a system with a fuller query language.
 
 For teams that want managed simplicity and are building a use case that is genuinely about similarity search, Pinecone is hard to beat. The operational overhead is close to zero and the API is clean and well-documented. The question is whether your use case is pure enough to justify a dedicated system or whether an existing database with vector support is the simpler path.

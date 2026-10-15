@@ -4,9 +4,9 @@
 
 Snowflake is a leading cloud data platform. It's where many organizations already store their operational and analytical data - data warehouse exports, CRM records, support tickets, event logs and more. Rather than moving that data to a separate vector database, Snowflake's native `VECTOR` data type and `VECTOR_COSINE_SIMILARITY` function bring vector similarity search directly to the data where it already lives.
 
-This is a different proposition from the previous five days. Snowflake is not a vector database - it is a cloud data warehouse that has added vector search as a first-class capability. The argument is data gravity: if your support tickets, customer records or product data already live in Snowflake, the simplest path to semantic search is to stay there rather than copy data into a dedicated vector system and build a synchronization pipeline to keep the two in sync.
+This is a different proposition from the previous five days. Snowflake isn't a vector database - it's a cloud data warehouse that has added vector search as a first-class capability. The argument is data gravity: if your support tickets, customer records or product data already live in Snowflake, the simplest path to semantic search is to stay there rather than copy data into a dedicated vector system and build a synchronization pipeline to keep the two in sync.
 
-Snowflake's vector support consists of two main pieces. The `VECTOR` data type stores fixed-dimension floating-point vectors natively. The `VECTOR_COSINE_SIMILARITY` function computes cosine similarity between two vectors in a SQL query. Both are available on all Snowflake account types including trial accounts.
+Snowflake's vector support consists of two main pieces. The `VECTOR` data type stores fixed-dimension floating-point vectors natively. The `VECTOR_COSINE_SIMILARITY` function computes cosine similarity between two vectors in a SQL query. Both are available in the trial account used in this chapter.
 
 ## When Would You Reach for It?
 
@@ -49,7 +49,7 @@ To follow along you'll need:
 - Ollama running locally with the `all-minilm` model pulled
 - Python 3.12 with a virtual environment
 
-> **Note:** Snowflake offers a managed vector search service called Cortex Search, which handles embedding generation internally. However, the embedding functions it relies on are not available on trial accounts. For this chapter we use Ollama to generate embeddings locally and store them in Snowflake using the native `VECTOR` data type, which is available on all account types.
+> **Note:** Snowflake offers a managed vector search service called Cortex Search, which handles embedding generation internally. However, the embedding functions it relies on may not be available on trial accounts, depending on region and account privileges. For this chapter we use Ollama to generate embeddings locally and store them in Snowflake using the native `VECTOR` data type, which is available on all account types.
 
 ### Configuration
 
@@ -171,7 +171,7 @@ for ticket in tqdm(tickets, desc = "Generating embeddings"):
 df["EMBEDDING"] = [str(e) for e in embeddings]
 ```
 
-The embedding is stored as a string because `write_pandas` does not support the `VECTOR` type directly. We cast it to `VECTOR` at query time.
+The embedding is stored as a string because the connector can't load `VECTOR` columns directly. We cast it to `VECTOR` at query time.
 
 ### Load Data into Snowflake
 
@@ -229,22 +229,24 @@ def search_tickets(query: str, top_k: int = 5):
     """, (query_vec_str,))
 ```
 
-Sample results:
+Sample results (the top two of five are shown):
 
 ```text
 Query: 'customer cannot log in after forgetting their password'
 
-  TKT00001 | Account | Medium | Resolved
-  Product: InsightEngine
-  Similarity: 0.918
+  TKT00121 | Account | Medium | Open
+  Product: AnalyticsDash
+  Similarity: 0.714
+  Description: Customer has forgotten their password and is not receiving the password reset email in their inbox.
+
+  TKT00088 | Account | Critical | Resolved
+  Product: TaskMaster
+  Similarity: 0.714
   Description: Customer has forgotten their password and is not receiving the password reset email in their inbox.
   Resolution: Account team verified the customer's identity and restored access. Security review completed.
-
-  TKT00012 | Account | High | Open
-  Product: SecurePortal
-  Similarity: 0.918
-  Description: Two-factor authentication is locked and customer cannot access their account from a new device.
 ```
+
+The two tickets have identical descriptions, so their similarity scores are identical. The generated dataset has only five description templates per category, so ties like this are common. The next three results are two-factor authentication tickets that score 0.492 each, and the order among tied tickets isn't guaranteed to be the same from one query to the next.
 
 ### Filtered Search
 
@@ -280,17 +282,25 @@ def search_tickets_filtered(
     """, (query_vec_str,))
 ```
 
-Finding resolved technical issues is particularly useful for support teams - a query that returns past tickets with resolutions gives agents an immediate starting point for troubleshooting:
+Finding resolved technical issues is particularly useful for support teams - a query that returns past tickets with resolutions gives agents an immediate starting point for troubleshooting (the top two of four matching tickets are shown):
 
 ```text
 query = 'API returning errors and integration not working', category = 'Technical', status = 'Resolved'
 
-  TKT00003 | Technical | Low | Resolved
-  Product: ConnectAPI
-  Similarity: 0.836
+  TKT00072 | Technical | Critical | Resolved
+  Product: InsightEngine
+  Similarity: 0.506
+  Description: API calls are returning 500 errors intermittently. Customer has provided request IDs and timestamps for investigation.
+  Resolution: Engineering team identified the root cause and deployed a fix. Customer confirmed the issue is resolved.
+
+  TKT00034 | Technical | Low | Resolved
+  Product: InsightEngine
+  Similarity: 0.340
   Description: Integration with a third-party service stopped working after a configuration change on the customer's side.
   Resolution: Engineering team identified the root cause and deployed a fix. Customer confirmed the issue is resolved.
 ```
+
+Only four tickets in the dataset are both `Technical` and `Resolved`, so the filter returns four results rather than five.
 
 ### Analytics with SQL
 
@@ -319,23 +329,27 @@ No second system, no result merging, no data movement. The semantic search and t
 
 ## What You'd Hit in Production
 
-**Cortex Search on trial accounts.** Snowflake Cortex Search handles embedding generation internally and provides a managed search service. However, the underlying embedding functions are not available on trial accounts. For production use with a paid Snowflake account, Cortex Search is worth evaluating - it removes the need for an external embedding pipeline and manages index updates as the table changes. For trial accounts or teams with an existing embedding pipeline, the `VECTOR` + `VECTOR_COSINE_SIMILARITY` approach shown in this chapter is an alternative.
+**Cortex Search on trial accounts.** Snowflake Cortex Search handles embedding generation internally and provides a managed search service. However, the underlying embedding functions may not be available on trial accounts, depending on region and account privileges. For production use with a paid Snowflake account, Cortex Search is worth evaluating - it removes the need for an external embedding pipeline and manages index updates as the table changes. For trial accounts or teams with an existing embedding pipeline, the `VECTOR` + `VECTOR_COSINE_SIMILARITY` approach shown in this chapter is an alternative.
 
-**`TRY_PARSE_JSON` overhead.** Casting the stored `VARCHAR` to `VECTOR` via `TRY_PARSE_JSON` at query time adds overhead compared to storing embeddings natively as `VECTOR`. For production, consider storing embeddings directly in a `VECTOR(FLOAT, N)` column rather than as a string. The `write_pandas` function does not currently support the `VECTOR` type, so you would need to use a `PUT` and `COPY INTO` pattern or insert rows individually.
+**`TRY_PARSE_JSON` overhead.** Casting the stored `VARCHAR` to `VECTOR` via `TRY_PARSE_JSON` at query time adds overhead compared to storing embeddings natively as `VECTOR`. For production, consider storing embeddings directly in a `VECTOR(FLOAT, N)` column rather than as a string. The Snowflake connector can't load `VECTOR` columns directly, so you would load the embeddings as an `ARRAY` into a staging table and cast them into a `VECTOR` column with an `INSERT ... SELECT`.
 
-**Warehouse costs.** Every query that runs `VECTOR_COSINE_SIMILARITY` across a large table requires the warehouse to be running. With `AUTO_SUSPEND = 60`, the warehouse suspends after a minute of inactivity. For low-traffic use cases this is cost-effective; for high-traffic search applications the cost of keeping the warehouse running can add up. Cortex Search manages this differently by running search on a dedicated infrastructure.
+**Warehouse costs.** Every query that runs `VECTOR_COSINE_SIMILARITY` across a large table requires the warehouse to be running. With `AUTO_SUSPEND = 60`, the warehouse suspends after a minute of inactivity. For low-traffic use cases this is cost-effective; for high-traffic search applications the cost of keeping the warehouse running can add up. Cortex Search has its own cost model, so compare the two against your expected query volume.
 
-**Full table scan.** The `VECTOR_COSINE_SIMILARITY` query performs a full table scan to compute similarity for every row before sorting and limiting. For datasets with hundreds of thousands of tickets this works well. For millions of rows, query latency will increase. Cortex Search uses approximate nearest neighbor indexing to avoid full scans at scale.
+**Full table scan.** The `VECTOR_COSINE_SIMILARITY` query performs a full table scan to compute similarity for every row before sorting and limiting. For datasets of modest size this works well, but query latency grows with the number of rows. Cortex Search is worth evaluating when full scans become too slow.
 
-**Warehouse size for large datasets.** At 200 tickets an `X-SMALL` warehouse is more than sufficient. For larger datasets or faster query times, increase the warehouse size. Snowflake auto-scales compute independently of storage, so you can use a larger warehouse for bulk embedding inserts and scale back down for queries.
+**Warehouse size for large datasets.** At 200 tickets an `X-SMALL` warehouse is more than sufficient. For larger datasets or faster query times, increase the warehouse size. Snowflake scales compute independently of storage, so you can use a larger warehouse for bulk embedding inserts and scale back down for queries.
 
-**Snowflake Postgres and pgvector.** For applications that need low-latency reads and full Postgres semantics alongside Snowflake data, Snowflake Postgres provides a fully managed Postgres with `pgvector` integrated directly into the platform. See the Snowflake Postgres section below for a working example.
+**Snowflake Postgres and pgvector.** For applications that need full Postgres semantics alongside Snowflake data, Snowflake Postgres provides a fully managed Postgres with `pgvector` integrated directly into the platform. See the Snowflake Postgres section below for a working example.
 
 ## Snowflake Postgres - pgvector Inside the Data Platform
 
-Snowflake Postgres is a fully managed Postgres database integrated directly into the Snowflake platform, available under **Manage > Postgres** in the Snowflake UI. It is powered by the Crunchy Data acquisition and brings standard Postgres with `pgvector` into the data platform context, alongside Snowflake tables, warehouses and governance features.
+Snowflake Postgres is a fully managed Postgres database integrated directly into the Snowflake platform, available under **Manage > Postgres** in the Snowflake UI. It's built on Crunchy Data technology following Snowflake's acquisition of the company, and brings standard Postgres with `pgvector` into the data platform context, alongside Snowflake tables, warehouses and governance features.
 
 Unlike the `VECTOR_COSINE_SIMILARITY` approach used earlier in this chapter, Snowflake Postgres uses the native `pgvector` `<=>` cosine distance operator. The connection uses a static password, making it simpler to work with from a notebook.
+
+### Prerequisites
+
+Before running the code, create a Snowflake Postgres instance in the Snowflake UI under **Manage > Postgres**, note the hostname, username and password from the connection string and add your IP address to the network ingress rules. SSL is required for all connections.
 
 ### Configuration
 
@@ -433,7 +447,7 @@ def search_snowflake_pg(query: str, top_k: int = 5):
     """, (str(query_embedding), str(query_embedding), top_k))
 ```
 
-Sample output:
+Sample output (the top result of five):
 
 ```text
 Snowflake Postgres query: 'customer cannot log in after forgetting their password'
@@ -445,15 +459,17 @@ Snowflake Postgres query: 'customer cannot log in after forgetting their passwor
   the password reset email in their inbox.
 ```
 
+The top two results match the Snowflake query above, which confirms that both approaches compute the same cosine similarity. Results three to five differ only because tied tickets can come back in any order.
+
 The connection, the vector column and the `<=>` operator are all standard Postgres and `pgvector` - the same as Day 1. What has changed is the operational context: the database is fully managed and lives inside the Snowflake platform alongside tables, warehouses and governance features.
 
 ## When to Look Elsewhere
 
 Snowflake is the right choice when your data are already there. Consider alternatives if:
 
-- You have no existing Snowflake footprint. Snowflake is not free - it operates on a credit model and production usage costs money. Standing up Snowflake just for vector search would be hard to justify when purpose-built vector databases or `pgvector` on a managed Postgres are simpler and cheaper.
-- You need sub-second similarity search at very large scale. Full table scans do not scale indefinitely. Cortex Search on a paid account addresses this with approximate nearest neighbor indexing, but the free vector search approach in this chapter is inherently a scan-based approach.
-- Your embedding pipeline is not already managed. This chapter requires generating embeddings externally with Ollama and loading them manually. If you are starting from scratch with no existing pipeline, a database that handles embeddings internally - like Snowflake's Cortex Search on a paid account - reduces operational complexity.
-- Your team is not SQL-native. The Snowflake approach is cleanest for teams already working in SQL. For teams building Python applications, the connector-based approach adds friction compared to databases with richer Python SDKs.
+- You have no existing Snowflake footprint. Snowflake isn't free - it operates on a credit model and production usage costs money. Standing up Snowflake just for vector search would be hard to justify when purpose-built vector databases or `pgvector` on a managed Postgres are simpler and cheaper.
+- You need sub-second similarity search at very large scale. Full table scans don't scale indefinitely. Cortex Search on a paid account addresses this with approximate nearest neighbor indexing, but the approach in this chapter is inherently scan-based.
+- Your embedding pipeline isn't already managed. This chapter requires generating embeddings externally with Ollama and loading them manually. If you're starting from scratch with no existing pipeline, a database that handles embeddings internally - like Snowflake's Cortex Search on a paid account - reduces operational complexity.
+- Your team isn't SQL-native. The Snowflake approach is cleanest for teams already working in SQL. For teams building Python applications, the connector-based approach adds friction compared to databases with richer Python SDKs.
 
 For data teams already working in Snowflake, adding vector search to an existing table is a low-friction, high-value addition. The ability to combine semantic search with full SQL analytics in a single system - without moving data or introducing a new operational dependency - is a meaningful advantage for the right team and the right use case.

@@ -2,27 +2,27 @@
 
 ## What Is It?
 
-PostgreSQL needs little introduction. It is the world's most widely deployed open-source relational database, with a history stretching back to the late 1980s and an ecosystem that spans virtually every programming language, cloud platform and deployment model imaginable. Developers reach for Postgres because it is reliable, standards-compliant and extraordinarily capable - it handles relational data, JSON documents, full-text search and geospatial queries, all without leaving the database.
+PostgreSQL needs little introduction. It's the world's most widely deployed open-source relational database, with a history stretching back to the late 1980s and an ecosystem that spans virtually every programming language, cloud platform and deployment model imaginable. Developers reach for Postgres because it's reliable, standards-compliant and extraordinarily capable - it handles relational data, JSON documents, full-text search and geospatial queries, all without leaving the database.
 
 The `pgvector` extension adds one more capability to that list: native vector similarity search. Released in 2021 and now available on every major managed Postgres platform, `pgvector` introduces a `VECTOR` data type and the indexing structures needed to search across it efficiently. With a single `CREATE EXTENSION` command, a Postgres database becomes a vector database.
 
-What makes this interesting is not that `pgvector` is the fastest or most feature-rich vector search implementation - it's not. What makes it interesting is that it requires no new infrastructure, no new operational skills and no new mental model. If your application already runs on Postgres, vector search is one extension away.
+What makes this interesting isn't that `pgvector` is the fastest or most feature-rich vector search implementation - it's not. What makes it interesting is that it requires no new infrastructure, no new operational skills and no new mental model. If your application already runs on Postgres, vector search is one extension away.
 
 ## When Would You Reach for It?
 
-The clearest signal is existing Postgres data. If your application already stores its data in Postgres - user profiles, product catalogs, support tickets, documents - adding `pgvector` means vector search lives alongside that data in the same database. You can filter by salary, location, date or any other column in the same query that computes semantic similarity. No synchronization between databases, no dual writes, no operational overhead of a second system.
+The clearest signal is existing Postgres data. If your application already stores its data in Postgres - user profiles, product catalogs, support tickets, documents - adding `pgvector` means vector search lives alongside those data in the same database. You can filter by salary, location, date or any other column in the same query that computes semantic similarity. No synchronization between databases, no dual writes, no operational overhead of a second system.
 
-The second signal is team familiarity. A team that knows SQL and knows Postgres can be productive with `pgvector` immediately. There is no new query language to learn, no new SDK to integrate and no new infrastructure to operate.
+The second signal is team familiarity. A team that knows SQL and knows Postgres can be productive with `pgvector` immediately. There's no new query language to learn, no new SDK to integrate and no new infrastructure to operate.
 
-The third signal is scale. `pgvector` handles millions of vectors comfortably, which covers the majority of real-world use cases. If you are building a general-purpose search engine over billions of documents, you will eventually need something more specialized. But for most applications - internal tools, product search, recommendation features, RAG pipelines over a bounded corpus - `pgvector` is more than sufficient.
+The third signal is scale. `pgvector` handles millions of vectors comfortably, which covers the majority of real-world use cases. If you're building a general-purpose search engine over billions of documents, you'll eventually need something more specialized. But for most applications - internal tools, product search, recommendation features, RAG pipelines over a bounded corpus - `pgvector` is more than sufficient.
 
 ## The Use Case
 
-For this chapter we'll build a semantic job listing search engine. Users describe what they are looking for in natural language - "I want to work on machine learning models in production" or "looking for a data pipeline and ETL role" - and the system returns the most relevant listings from the database.
+For this chapter we'll build a semantic job listing search engine. Users describe what they're looking for in natural language - "I want to work on machine learning models in production" or "looking for a data pipeline and ETL role" - and the system returns the most relevant listings from the database.
 
 This use case is a natural fit for Postgres. Job listings are structured data: they have titles, locations, salary ranges and skills lists, all of which are natural relational columns. But the richest signal for relevance is the free-text description, which is where vector search earns its place. By embedding each description and indexing the resulting vectors, we can match a user's query against the meaning of a listing rather than just its keywords.
 
-The relational advantage becomes clear when we add filters. A user who wants a data engineering role in New York with a minimum salary of $130,000 should not have to choose between semantic relevance and structured constraints. With `pgvector`, both happen in a single SQL query.
+The relational advantage becomes clear when we add filters. A user who wants a data engineering role in New York with a minimum salary of $130,000 shouldn't have to choose between semantic relevance and structured constraints. With `pgvector`, both happen in a single SQL query.
 
 ## The Data
 
@@ -45,14 +45,14 @@ The `description` field is the one that carries semantic meaning. Everything els
 
 ### Prerequisites
 
-To follow along you will need:
+To follow along you'll need:
 
 - PostgreSQL 16 installed locally (use Homebrew on a Mac)
 - `pgvector` installed from source (see the note below)
 - Ollama running locally with the `all-minilm` model pulled
 - Python 3.12 with a virtual environment
 
-> **Note:** The Homebrew formula for `pgvector` installs cleanly but leaves an empty package on Apple Silicon Macs - the extension files are simply not present after installation. The workaround is to install from source, as shown below.
+> **Note:** The Homebrew formula for `pgvector` installs cleanly but leaves an empty package on Apple Silicon Macs - the extension files simply aren't present after installation. The workaround is to install from source, as shown below.
 
 ```shell
 brew uninstall pgvector
@@ -64,11 +64,11 @@ make install
 
 This compiles `pgvector` against the local Postgres installation and places the extension files in the correct location.
 
-> **Note:** A Homebrew Postgres installation does not create a `postgres` superuser. Instead, it creates a role matching the Mac username. When connecting from Python, use `os.environ.get("USER")` rather than hardcoding `"postgres"`.
+> **Note:** A Homebrew Postgres installation doesn't create a `postgres` superuser. Instead, it creates a role matching the Mac username. When connecting from Python, use `os.environ.get("USER")` rather than hardcoding `"postgres"`.
 
 ### Configuration
 
-We'll keep all tuneable parameters in a single cell at the top of the notebook. `NUM_JOBS` controls the size of the generated dataset - 500 is a reasonable default for exploring search quality. `RANDOM_SEED` ensures the same dataset is generated on every run.
+We'll keep all tunable parameters in a single cell at the top of the notebook. `NUM_JOBS` controls the size of the generated dataset - 500 is a reasonable default for exploring search quality. `RANDOM_SEED` ensures the same dataset is generated on every run.
 
 ```python
 LLM_EMBEDDING = "all-minilm"
@@ -162,7 +162,7 @@ job_listings = generate_job_listings(NUM_JOBS)
 
 ### Create the Table
 
-The table schema is straightforward. The `embedding` column uses the `VECTOR({EMBEDDING_DIM})` type, which matches the output dimensionality of `all-minilm`.
+The table schema is straightforward. The `embedding` column uses the `VECTOR({EMBEDDING_DIMS})` type, which matches the output dimensionality of `all-minilm`.
 
 ```python
 cursor.execute("DROP TABLE IF EXISTS job_listings;")
@@ -187,10 +187,6 @@ cursor.execute(f"""
 We embed each job description using Ollama and insert the result alongside the structured fields. The `tqdm` progress bar gives useful feedback when loading larger datasets.
 
 ```python
-def get_embedding(text: str) -> list:
-    response = ollama.embeddings(model = LLM_EMBEDDING, prompt = text)
-    return response["embedding"]
-
 for job in tqdm(job_listings, desc = "Inserting listings"):
     embedding = get_embedding(job["description"])
     cursor.execute("""
@@ -257,12 +253,12 @@ Query: 'I want to work on machine learning models in production'
   $140,000 - $175,000 | Similarity: 0.669
 
   ML Ops Engineer @ AlphaEdge - Austin, TX
-  $140,000 - $170,000 | Similarity: 0.635
+  $140,000 - $170,000 | Similarity: 0.634
 ```
 
 ### The Relational Advantage - Filtered Search
 
-This is where Postgres genuinely earns its place. We combine semantic similarity with standard SQL filters in a single query. The key subtlety in the implementation is parameter ordering - the first embedding parameter appears in the `SELECT` clause, the filter parameters follow in the `WHERE` clause and the second embedding parameter appears in the `ORDER BY`. Getting this wrong produces an `InvalidTextRepresentation` error as Postgres tries to interpret an embedding string as an integer.
+This is where Postgres genuinely earns its place. We combine semantic similarity with standard SQL filters in a single query. The key subtlety in the implementation is parameter ordering - the first embedding parameter appears in the `SELECT` clause, the filter parameters follow in the `WHERE` clause and the second embedding parameter appears in the `ORDER BY`.
 
 ```python
 def search_jobs_filtered(query: str, location: str = None, min_salary: int = None, top_k: int = 5):
@@ -321,25 +317,25 @@ query = 'technical leadership and system design', location = 'New York', min_sal
   $135,000 - $170,000 | Similarity: 0.272
 ```
 
-The SQL filter and the vector similarity operate together in a single round trip to the database. There is no second system to query, no results to merge and no metadata to synchronize.
+The SQL filter and the vector similarity operate together in a single round trip to the database. There's no second system to query, no results to merge and no metadata to synchronize.
 
 ## What You'd Hit in Production
 
 **Index build time.** `HNSW` indexes are built at insert time, which slows bulk loads considerably. For large datasets, always load data first and create the index afterwards. The difference can be an order of magnitude.
 
-**Dimensionality limit.** `pgvector` supports up to 2,000 dimensions. Most embedding models are well within this - `all-minilm` produces 384 dimensions, OpenAI's `text-embedding-3-small` produces 1,536. The exception is `text-embedding-3-large` at 3,072 dimensions, which requires dimensionality reduction before storage.
+**Dimensionality limit.** `pgvector` can index vectors of up to 2,000 dimensions, although the `VECTOR` type itself can store more. Most embedding models are well within the indexing limit - `all-minilm` produces 384 dimensions, OpenAI's `text-embedding-3-small` produces 1,536. The exception is `text-embedding-3-large` at 3,072 dimensions, which requires dimensionality reduction before indexing.
 
-**Approximate vs exact search.** `HNSW` is an approximate nearest neighbor algorithm. For the vast majority of applications this is fine - recall is high and the speed improvement over exact search is substantial. If you need guaranteed exact results, omit the index and use a sequential scan, but be aware this does not scale beyond a few hundred thousand vectors.
+**Approximate vs exact search.** `HNSW` is an approximate nearest neighbor algorithm. For the vast majority of applications this is fine - recall is high and the speed improvement over exact search is substantial. If you need guaranteed exact results, omit the index and use a sequential scan, but be aware this doesn't scale beyond a few hundred thousand vectors.
 
 **Connection pooling.** Vector queries are memory-intensive, particularly at higher dimensions. In production, use `PgBouncer` or a connection pooler to avoid connection exhaustion under load.
 
 ## When to Look Elsewhere
 
-`pgvector` is a strong default, but it is not the right choice for every situation. Consider a dedicated vector database if:
+`pgvector` is a strong default, but it isn't the right choice for every situation. Consider a dedicated vector database if:
 
-- You are storing tens of millions of vectors and need sub-10ms retrieval at scale. Dedicated vector databases are built around this problem in a way that a general-purpose database with an extension is not.
+- You're storing tens of millions of vectors and need sub-10ms retrieval at scale. Dedicated vector databases are built around this problem in a way that a general-purpose database with an extension is not.
 - You need advanced filtering on high-cardinality metadata without index performance trade-offs. `pgvector`'s `HNSW` index applies the vector search first and filters afterwards, which can degrade precision when filters are highly selective.
 - Your team has no existing Postgres footprint and no appetite for managing it. The operational simplicity argument only holds if Postgres is already in your stack.
 - You need built-in embedding model integrations, multi-tenancy, namespacing or other features that dedicated vector databases provide out of the box.
 
-For most applications - particularly those already running on Postgres - `pgvector` is the right place to start. It is free, battle-tested and keeps your architecture simple. The chapters that follow explore what you gain by moving to a dedicated vector database and when that trade-off is worth making.
+For most applications - particularly those already running on Postgres - `pgvector` is the right place to start. It's free, battle-tested and keeps your architecture simple. The chapters that follow explore what you gain by moving to a dedicated vector database and when that trade-off is worth making.

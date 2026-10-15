@@ -2,15 +2,15 @@
 
 ## What Is It?
 
-MongoDB is the world's most popular document database. Rather than storing data in rows and columns, MongoDB stores it as documents - flexible, JSON-like structures that can hold nested objects, arrays and variably-shaped data without a fixed schema. This makes it a natural fit for content that does not conform cleanly to a relational table, such as product catalogs with varying attributes, user profiles with optional fields or recipes with ingredient lists of different lengths.
+MongoDB is the world's most popular document database. Rather than storing data in rows and columns, MongoDB stores it as documents - flexible, JSON-like structures that can hold nested objects, arrays and variably-shaped data without a fixed schema. This makes it a natural fit for content that doesn't conform cleanly to a relational table, such as product catalogs with varying attributes, user profiles with optional fields or recipes with ingredient lists of different lengths.
 
-MongoDB Atlas is the fully managed cloud version of MongoDB, available on AWS, GCP and Microsoft Azure. Atlas Vector Search extends Atlas with native vector similarity search, letting us store and query embeddings directly alongside our existing document data. There is no separate vector store to maintain, no synchronization between systems and no new operational model to learn.
+MongoDB Atlas is the fully managed cloud version of MongoDB, available on AWS, GCP and Microsoft Azure. Atlas Vector Search extends Atlas with native vector similarity search, letting us store and query embeddings directly alongside our existing document data. There's no separate vector store to maintain, no synchronization between systems and no new operational model to learn.
 
 ## When Would You Reach for It?
 
 The clearest signal is an existing MongoDB footprint. If an application already stores its data as documents in MongoDB, Atlas Vector Search is the path of least resistance - vector search becomes a field on existing documents rather than a reason to introduce a new database.
 
-The second signal is variably structured content. Documents whose shape varies from record to record - recipes with different numbers of ingredients, products with different attribute sets, support tickets with optional fields - fit the document model naturally. In a relational database, this kind of variation requires either nullable columns, separate tables or JSON columns. In MongoDB it is just how documents work.
+The second signal is variably structured content. Documents whose shape varies from record to record - recipes with different numbers of ingredients, products with different attribute sets, support tickets with optional fields - fit the document model naturally. In a relational database, this kind of variation requires either nullable columns, separate tables or JSON columns. In MongoDB it's just how documents work.
 
 The third signal is the aggregation pipeline. MongoDB's query model is built around composable pipeline stages. The `$vectorSearch` stage plugs into this pipeline naturally, meaning we can chain vector search with filtering, grouping, lookup joins and projection in a single query. Developers already familiar with MongoDB's aggregation model will find Atlas Vector Search intuitive to work with.
 
@@ -18,13 +18,13 @@ The third signal is the aggregation pipeline. MongoDB's query model is built aro
 
 For this chapter we'll build a semantic recipe finder. Users describe what they feel like eating in natural language - "something warm and spicy for a cold evening" or "a light fresh dish with vegetables for summer" - and get relevant recipes in return.
 
-Recipes are a natural fit for the document model. Each recipe has a name, a cuisine, a difficulty rating, a prep time and an ingredient list - but the ingredient list varies in length from recipe to recipe and the set of attributes that matter differs by dish type. In a relational database this variability requires workarounds. In MongoDB it is simply a document with an array field.
+Recipes are a natural fit for the document model. Each recipe has a name, a cuisine, a difficulty rating, a prep time and an ingredient list - but the ingredient list varies in length from recipe to recipe and the set of attributes that matter differs by dish type. In a relational database this variability requires workarounds. In MongoDB it's simply a document with an array field.
 
 The `description` field on each recipe is a short prose summary of the dish. This is what we'll embed and search over. The structured fields - cuisine, difficulty, prep time - serve as filters.
 
 ## The Data
 
-We'll generate recipes programmatically from pools of cuisines, cooking methods, ingredients and description templates. Each description is assembled from role-appropriate components, giving enough variation for meaningful semantic search across hundreds of recipes.
+We'll generate recipes programmatically from pools of cuisines, cooking methods, ingredients and description templates. Each description is assembled from randomly selected components, giving enough variation for meaningful semantic search across hundreds of recipes.
 
 The key fields are:
 
@@ -33,9 +33,9 @@ The key fields are:
 - `difficulty` - "Easy", "Medium" or "Hard"
 - `prep_time` - preparation time in minutes
 - `ingredients` - a list of ingredients of varying length
-- `description` - a short prose summary of the dish; this is what is embedded
+- `description` - a short prose summary of the dish; this is what's embedded
 
-Note that `ingredients` is a list field with no fixed length. This is the document model working as intended - no schema changes are needed to accommodate recipes with five ingredients or fifteen.
+Note that `ingredients` is a list field with no fixed length. This is the document model working as intended - no schema changes are needed to accommodate recipes with a handful of ingredients or a dozen.
 
 ## Building the Application
 
@@ -49,15 +49,15 @@ To follow along you'll need:
 
 ### Create a Free MongoDB Atlas Cluster
 
-If you do not already have a cluster:
+If you don't already have a cluster:
 
 1. Go to [MongoDB Atlas](https://www.mongodb.com/cloud/atlas/register) and create a free account
-2. Once logged-in, select **Create a free starter database**
+2. Once logged in, select **Create a free starter database**
 3. Give the cluster a name (e.g. `recipes`)
 4. Click **Set it up for me**
 5. Copy and save database user credentials
 6. Select **Choose a connection method > Drivers > Python**
-7. Note down the connection string that looks like `mongodb+srv://<username>:<password>@recipes.xxxxx.mongodb.net/`
+7. Note down the connection string that looks like `mongodb+srv://<username>:<password>@recipes.xxxxx.mongodb.net`
 8. From the left navigation pane select **SECURITY > Database & Network Access**
 9. From the left navigation pane select **NETWORK ACCESS > IP Access List**
 10. Add `0.0.0.0/0` for temporary open access during development
@@ -67,7 +67,7 @@ If you do not already have a cluster:
 We'll set the following environment variable before running the notebook:
 
 ```bash
-export MONGODB_URI="mongodb+srv://<username>:<password>@<cluster>.mongodb.net"
+export MONGODB_URI="mongodb+srv://<username>:<password>@recipes.xxxxx.mongodb.net"
 ```
 
 Then in the notebook:
@@ -196,7 +196,7 @@ print(f"Index '{INDEX_NAME}' creation initiated.")
 
 ### Wait for the Vector Index to be Ready
 
-> **Note:** Atlas Vector Search reports the index status as `READY` before queries will actually return results. A fixed delay is not reliable - a small collection may be ready in five seconds, a larger one may need longer. The most robust approach is to poll the index status and then confirm with a test query.
+> **Note:** Atlas Vector Search can report the index status as `READY` slightly before queries return results. A fixed delay isn't reliable - even our small collection took around 30 seconds to become ready, and a larger one may need longer. The most robust approach is to poll the index status and then confirm with a test query.
 
 After inserting data, confirm that the vector index we created is active.
 
@@ -274,7 +274,7 @@ def search_recipes(query: str, top_k: int = 5):
         print()
 ```
 
-The `numCandidates` parameter controls how many documents Atlas considers before returning the top `limit` results. A higher value improves recall at the cost of latency. A ratio of 10x is a reasonable starting point.
+The `numCandidates` parameter controls how many documents Atlas considers before returning the top `limit` results. A higher value improves recall at the cost of latency. We use a ratio of 10x here because the collection is small, but the Atlas documentation recommends starting at 20x.
 
 ### The Document Advantage - Filtered Search
 
@@ -328,14 +328,24 @@ search_recipes_filtered(
 
 query = 'a comforting pasta dish', cuisine = 'Italian', difficulty = 'Easy', max_time = 30 mins
 
-  Italian Style Salmon With Rice (Italian)
-  Easy - 30 mins | Score: 0.748
-  Simple and satisfying - poached salmon tossed with kale and rice, creamy and comforting.
+  Steamed Lamb With Zucchini (Italian)
+  Easy - 20 mins | Score: 0.749
+  steamed lamb served over tortillas with zucchini, creamy and comforting and perfect for meal prep.
+
+  Poached Chicken With Mushrooms (Italian)
+  Easy - 20 mins | Score: 0.702
+  Simple and satisfying - poached chicken tossed with mushrooms and flatbread, light and fresh.
+
+  Chickpeas And Roasted Peppers Noodles Bowl (Italian)
+  Easy - 15 mins | Score: 0.676
+  Quick and zesty and vibrant: pan-fried chickpeas with roasted peppers over noodles, great for a dinner party.
 ```
+
+The function asks for up to five results, but only three come back because only three of the 200 recipes match all three filters.
 
 ### Querying the Document Model
 
-One of MongoDB's strengths is querying nested and array fields directly. We can find all recipes containing a specific ingredient using a standard MongoDB query - no joins, no separate table, no additional index, as follows:
+One of MongoDB's strengths is querying nested and array fields directly. We can find all recipes containing a specific ingredient using a standard MongoDB query - no joins and no separate table, as follows:
 
 ```python
 def find_by_ingredient(ingredient: str, limit: int = 5):
@@ -345,17 +355,17 @@ def find_by_ingredient(ingredient: str, limit: int = 5):
     ).limit(limit)
 ```
 
-This works because `ingredients` is a native array field on the document. MongoDB indexes array fields automatically, so this query is efficient even at scale.
+This works because `ingredients` is a native array field on the document. On a collection this small a scan is fine, but at scale we'd create a multikey index on `ingredients`, which MongoDB builds when we index an array field.
 
 ## What You'd Hit in Production
 
-**Index propagation delay.** As noted above, Atlas reports the index status as `READY` before queries will return results. Budget for this in any automated pipeline that creates a collection and immediately queries it.
+**Index propagation delay.** As noted above, Atlas can report the index status as `READY` slightly before queries return results, and even our small collection took around 30 seconds to become ready. Budget for this in any automated pipeline that creates a collection and immediately queries it.
 
-**numCandidates tuning.** The ratio between `numCandidates` and `limit` affects both recall and latency. A ratio of 10x is a reasonable starting point, but high-precision use cases may need higher values. Atlas documentation recommends at least `limit * 10` and no more than 10,000.
+**numCandidates tuning.** The ratio between `numCandidates` and `limit` affects both recall and latency. Atlas documentation recommends at least `limit * 20` and no more than 10,000. We use 10x here because the collection is small, and high-precision use cases may need higher values.
 
 **Filter field declaration.** Filter fields must be declared in the index definition at creation time. Adding a new filterable field requires rebuilding the index. Plan your filter fields upfront.
 
-**Free tier limits.** Atlas Free clusters support vector search but are intended primarily for development and testing. A Free cluster supports one vector search index per collection and vector indexes can contain up to 8,192 dimensions. For production deployments, MongoDB recommends using a dedicated cluster (M10 or higher).
+**Free tier limits.** Atlas Free clusters support vector search but are intended primarily for development and testing. A Free cluster limits how many search indexes you can create, so check the current limits for your cluster tier. Vector indexes can contain up to 8,192 dimensions. For production deployments, MongoDB recommends using a dedicated cluster (M10 or higher).
 
 **Index management.** The vector search index can be created, updated and dropped entirely from Python using `SearchIndexModel` and `create_search_index()` - no Atlas UI required. This makes the full lifecycle scriptable and repeatable.
 

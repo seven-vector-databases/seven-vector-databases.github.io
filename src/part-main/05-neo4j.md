@@ -10,7 +10,7 @@ Today, Neo4j supports native vector indexes via Cypher. Embeddings are stored as
 
 ## When Would You Reach for It?
 
-The clearest signal is connected data where relationships carry meaning. If the interesting questions in your domain are not just "what does this entity look like" but "who is this entity connected to and what does that network tell us" - graph is the right model.
+The clearest signal is connected data where relationships carry meaning. If the interesting questions in your domain aren't just "what does this entity look like" but "who is this entity connected to and what does that network tell us" - graph is the right model.
 
 The second signal is multi-hop traversal. Relational databases can express joins, but deeply nested joins across many hops are expensive and awkward to write. In Neo4j, traversing five hops across a network is as natural as traversing one.
 
@@ -22,7 +22,7 @@ For this chapter we'll build a fraud detection system that combines vector simil
 
 The chapter demonstrates three distinct approaches and why each alone is insufficient:
 
-- **Pure vector search** - finds transactions that look semantically similar to known fraud patterns. In our dataset, vector search alone fails to surface the fraudulent transactions because their descriptions are not semantically distinct enough from legitimate ones.
+- **Pure vector search** - finds transactions that look semantically similar to known fraud patterns. In our dataset, the top results of a vector search contain no fraudulent transactions, so the search alone doesn't lead us to the fraud ring.
 - **Pure graph traversal** - starting from a known fraudulent account, traverses the graph to find all accounts sharing devices or IP addresses. This reveals the fraud ring structure without any vector search.
 - **Combined graph and vector** - uses vector search to find semantically suspicious transactions, then traverses the graph from each result to find connected accounts. This surfaces fraud rings that neither approach could find alone.
 
@@ -45,9 +45,9 @@ Relationship types:
 - `(:Transaction)-[:FROM_IP]->(:IpAddress)`
 - `(:Transaction)-[:AT_MERCHANT]->(:Merchant)`
 
-The fraud rate is controlled by `FRAUD_RATE = 0.05` - approximately 5% of accounts are fraudulent, which reflects real-world conditions. Fraudulent accounts are assigned shared fraud devices (`DEV_FRAUD_*`) and shared IP addresses. Legitimate accounts use their own unique devices and IPs. This creates a detectable fraud ring in the graph that graph traversal can surface.
+The fraud rate is controlled by `FRAUD_RATE = 0.05`, so approximately 5% of accounts are designated as fraudulent. The count is rounded down, so with 50 accounts we get 2 fraudulent accounts (4%). Fraudulent accounts are assigned shared fraud devices (`DEV_FRAUD_*`) and shared IP addresses, which about 70% of their transactions use. Legitimate transactions draw devices and IP addresses at random from larger pools, so some legitimate accounts share a device or IP address by chance. This creates a detectable fraud ring in the graph that graph traversal can surface, along with some noise.
 
-The dataset scales via `NUM_ACCOUNTS` and `NUM_TRANSACTIONS` while maintaining the fraud proportion automatically.
+The dataset scales via `NUM_ACCOUNTS` and `NUM_TRANSACTIONS`, and the number of fraudulent accounts follows `FRAUD_RATE`. Only the fraudulent accounts' transactions can be fraudulent, so the share of fraudulent transactions is lower still (3 of 200 in our run).
 
 ## Building the Application
 
@@ -61,7 +61,7 @@ To follow along you'll need:
 
 ### Create a Free Neo4j AuraDB Instance
 
-If you do not already have an instance:
+If you don't already have an instance:
 
 1. Go to [Neo4j Console](https://console.neo4j.io) and create an account
 2. Click **Create free instance**
@@ -110,7 +110,7 @@ print(f"Embedding dimensions: {EMBEDDING_DIMS}")
 
 ### Connect to Neo4j AuraDB
 
-We'll suppress deprecation warnings in the driver configuration to keep the output clean. AuraDB currently emits a deprecation notice for `db.index.vector.queryNodes()` - at the time of writing this book, the replacement `VECTOR SEARCH` syntax is not yet supported on the free tier, so we'll use the older procedure and suppress the warning:
+We'll suppress deprecation notices in the driver configuration to keep the output clean. Newer Neo4j releases deprecate the `db.index.vector.queryNodes()` procedure in favor of the Cypher `SEARCH` clause. The procedure still works, so we'll use it here and suppress the notice:
 
 ```python
 driver = GraphDatabase.driver(
@@ -135,7 +135,7 @@ fraud_account_ids  = set(random.sample(range(NUM_ACCOUNTS), num_fraud_accounts))
 fraud_devices = [f"DEV_FRAUD_{i:03d}" for i in range(3)]
 fraud_ips     = [f"192.168.{random.randint(10,99)}.{random.randint(1,254)}" for _ in range(3)]
 
-# Legitimate devices and IPs - unique per account
+# Legitimate devices and IPs - drawn at random, so some are shared by chance
 legit_devices = [f"DEV_LEGIT_{i:03d}" for i in range(NUM_ACCOUNTS * 2)]
 legit_ips = [f"10.{random.randint(0,255)}.{random.randint(0,255)}.{random.randint(1,254)}"
                  for _ in range(NUM_ACCOUNTS * 2)]
@@ -153,7 +153,40 @@ FRAUD_TEMPLATES = [
 
 ### Load the Graph
 
-We clear the database before each run, create uniqueness constraints on all node types, then load accounts, transactions and relationships in separate steps. The embedding is generated for each transaction description and stored as a property on the `Transaction` node:
+We clear the database before each run, create uniqueness constraints on all node types, then load accounts, transactions and relationships in separate steps. The clear step drops every constraint and every index except the built-in lookup indexes, then deletes all nodes and relationships in batches of 1,000:
+
+```python
+def clear_database(session):
+    # Drop all constraints
+    constraints = session.run("SHOW CONSTRAINTS YIELD name RETURN name").data()
+    for c in constraints:
+        session.run(f"DROP CONSTRAINT {c['name']} IF EXISTS")
+
+    # Drop all non-lookup indexes
+    indexes = session.run("""
+        SHOW INDEXES YIELD name, type
+        WHERE type <> 'LOOKUP'
+        RETURN name
+    """).data()
+    for idx in indexes:
+        session.run(f"DROP INDEX {idx['name']} IF EXISTS")
+
+    # Delete all nodes and relationships in batches
+    while True:
+        result = session.run("""
+            MATCH (n) WITH n LIMIT 1000
+            DETACH DELETE n
+            RETURN count(*) AS deleted
+        """)
+        if result.single()["deleted"] == 0:
+            break
+
+    print("Database cleared -- constraints, indexes and data removed.")
+```
+
+> **Note:** This removes everything in the database, not just this chapter's data, so only run it against an instance you're happy to wipe.
+
+The embedding is generated for each transaction description and stored as a property on the `Transaction` node:
 
 ```python
 with driver.session(database = NEO4J_DATABASE) as session:
@@ -198,12 +231,21 @@ session.run(f"""
 We'll then poll until the index state is `ONLINE` before running queries:
 
 ```python
-result = session.run("""
-    SHOW INDEXES
-    WHERE name = 'transaction_embeddings'
-""")
-record = result.single()
-state  = record["state"] if record else "NOT FOUND"
+print("Waiting for vector index to be online...")
+
+while True:
+    with driver.session(database = NEO4J_DATABASE) as session:
+        result = session.run("""
+            SHOW INDEXES
+            WHERE name = 'transaction_embeddings'
+        """)
+        record = result.single()
+        state  = record["state"] if record else "NOT FOUND"
+        if state == "ONLINE":
+            print("Vector index is online.")
+            break
+        print(f"  State: {state} - waiting...")
+        time.sleep(3)
 ```
 
 ### Vector Search - Find Similar Transactions
@@ -226,7 +268,7 @@ RETURN t.transaction_id AS transaction_id,
 ORDER BY score DESC
 ```
 
-Running this against our dataset reveals a key limitation:
+Running this against our dataset reveals a key limitation (the top two of five results are shown):
 
 ```text
 Vector search: 'suspicious high-value purchase at an electronics merchant from an unrecognized device'
@@ -238,7 +280,7 @@ Vector search: 'suspicious high-value purchase at an electronics merchant from a
   Score: 0.779 | Purchase of $397.58 at BuyEasy, a online retail merchant, using a mobile device.
 ```
 
-All results are legitimate transactions. The vector search is matching on surface-level semantic similarity - words like "electronics", "merchant", "device" - rather than surfacing the actual fraudulent transactions. This is the fundamental limitation of vector search for fraud detection: fraudulent behavior does not always look semantically different from legitimate behavior.
+All five results are legitimate transactions, and only 3 of the 200 transactions are fraudulent. The closest matches are ordinary purchases that share surface-level wording with the query, such as "electronics" and "device". This illustrates a limitation of vector search for fraud detection: fraudulent behavior doesn't always look semantically different from legitimate behavior, so similarity alone may not surface it.
 
 ### Graph Traversal - Find Connected Accounts
 
@@ -261,7 +303,7 @@ RETURN DISTINCT
 ORDER BY a2.is_fraud DESC
 ```
 
-Starting from `ACC0007`:
+Starting from `ACC0007` (the first two of six rows are shown):
 
 ```text
 Accounts connected to ACC0007 via shared devices or IP addresses:
@@ -273,7 +315,7 @@ Accounts connected to ACC0007 via shared devices or IP addresses:
   Shared via Device: DEV_LEGIT_071
 ```
 
-`ACC0040` is immediately surfaced as a connected fraudulent account via `DEV_FRAUD_002`. Graph traversal finds the fraud ring in two hops without any embedding or similarity computation.
+`ACC0040` is immediately surfaced as a connected fraudulent account via `DEV_FRAUD_002`. Graph traversal finds the fraud ring in two hops without any embedding or similarity computation. The other four rows are legitimate accounts that happen to share a device or IP address with `ACC0007`, such as `ACC0006` via `DEV_LEGIT_071`. Shared infrastructure is a signal, not proof, and it produces false positives that an investigator would need to review.
 
 ### Combined Graph and Vector Search
 
@@ -303,7 +345,31 @@ RETURN DISTINCT
 ORDER BY score DESC, a2.is_fraud DESC
 ```
 
-This query surfaces connections that neither approach alone could find. Starting from a semantically suspicious transaction, it traverses to accounts connected via shared infrastructure, including fraudulent accounts that were not themselves flagged by the vector search:
+This query reaches accounts that vector search alone doesn't surface. Starting from a semantically similar transaction, it traverses to accounts connected via shared infrastructure, which can include fraudulent accounts. In the output, the "flagged account" is simply the owner of the similar transaction. We call it with `top_k = 10` and a similarity threshold of 0.7:
+
+```python
+graph_vector_search(
+    "suspicious high-value purchase from an unrecognized device",
+    top_k = 10,
+    similarity_threshold = 0.7
+)
+```
+
+The call prints a summary line (35 rows, 2 involving a fraudulent account) and the first 10 rows, with rows that involve a fraudulent account listed first. Most rows connect only legitimate accounts. Two rows matter (shown here):
+
+```text
+  Similar transaction: TXN00087 | Score: 0.771
+  Flagged account:     ACC0042 [OK]
+  Connected account:   ACC0040 [FRAUD] (via IpAddress)
+
+  Similar transaction: TXN00169 | Score: 0.745
+  Flagged account:     ACC0015 [OK]
+  Connected account:   ACC0007 [FRAUD] (via IpAddress)
+```
+
+None of the similar transactions belongs to a fraudulent account, so vector search alone surfaced neither `ACC0040` nor `ACC0007`. Traversing the graph from two legitimate-looking hits reached both of them.
+
+A different query with a lower threshold (`"unusual out-of-pattern transaction from unfamiliar device"` with `similarity_threshold = 0.65`) returns 28 rows, again 2 of them involving a fraudulent account. One of them connects both fraud ring accounts directly:
 
 ```text
   Similar transaction: TXN00141 | Score: 0.724
@@ -311,7 +377,7 @@ This query surfaces connections that neither approach alone could find. Starting
   Connected account:   ACC0007 [FRAUD] (via Device)
 ```
 
-The two fraudulent accounts surface together through their shared device - exactly the fraud ring the graph was designed to contain.
+The two fraudulent accounts surface together through their shared device - exactly the fraud ring the graph was designed to contain. The other rows are noise, which is why the production notes below recommend filtering the output.
 
 ### Fraud Ring Visualization
 
@@ -323,7 +389,7 @@ A network visualization makes the fraud ring structure immediately obvious. We u
 
 The fraud ring network plot in Figure 5-1 shows:
 - Red circles for fraudulent accounts (`ACC0007`, `ACC0040`)
-- Orange diamonds for shared devices and IP addresses
+- Orange diamonds for the devices and IP addresses used by the fraudulent accounts
 - `DEV_FRAUD_002` appears as the central orange diamond connecting the two red nodes - the smoking gun device
 
 The key insight from the visualization is the two-cluster structure. `ACC0007` and `ACC0040` each have their own satellite devices and IP addresses, but `DEV_FRAUD_002` bridges the two clusters. This shared bridge is what a fraud investigator would focus on first.
@@ -348,8 +414,10 @@ RETURN d.device_id AS device_id,
 ORDER BY fraud_accounts DESC, num_accounts DESC
 ```
 
+The notebook prints the first 10 of the 55 devices that more than one account shares (the first two are shown here):
+
 ```text
-Devices shared between multiple accounts:
+Devices shared between multiple accounts (55 in total, showing the first 10):
 
   Device: DEV_FRAUD_002
   Accounts: 2 total, 2 fraudulent
@@ -362,7 +430,7 @@ Devices shared between multiple accounts:
 
 ## What You'd Hit in Production
 
-**VECTOR SEARCH syntax.** The newer `VECTOR SEARCH` Cypher syntax replaces `db.index.vector.queryNodes()` but is not yet supported on AuraDB Free. The older procedure works correctly and emits only a deprecation warning, which can be suppressed via `NotificationDisabledCategory.DEPRECATION` in the driver configuration. Check the AuraDB release notes for when the new syntax becomes available on the free tier.
+**Vector search syntax.** Newer Neo4j releases deprecate `db.index.vector.queryNodes()` in favor of the Cypher `SEARCH` clause. The procedure used in this chapter works correctly, and any deprecation notice can be suppressed via `NotificationDisabledCategory.DEPRECATION` in the driver configuration. Check the release notes for the version you're running and plan to move new code to the `SEARCH` clause.
 
 **Loading speed.** Inserting each transaction as a separate session call is simple but slow for large datasets. For production bulk loads use `UNWIND` with batched parameters to insert many nodes and relationships in a single query.
 
@@ -370,7 +438,7 @@ Devices shared between multiple accounts:
 
 **Combined query result volume.** The combined graph and vector search can return a large number of rows when the similarity threshold is low and the graph is densely connected. In production, filter the output to return only connections involving at least one flagged account and consider adding a minimum fraud score threshold to reduce noise.
 
-**AuraDB Free tier limits.** The free tier provides 200MB of storage and supports one database instance. For the dataset sizes in this chapter that is more than sufficient. Production fraud detection datasets with millions of transactions and accounts require a paid AuraDB tier or a self-hosted Neo4j Enterprise deployment.
+**AuraDB Free tier limits.** The free tier has limits on the number of nodes and relationships, on storage and on instances, so check the current limits in the Aura documentation. The dataset in this chapter is well within them. Production fraud detection datasets with millions of transactions and accounts require a paid AuraDB tier or a self-hosted Neo4j Enterprise deployment.
 
 **Self-hosted Neo4j.** Neo4j can be run locally via Docker or deployed on your own infrastructure. The self-hosted version supports the Graph Data Science (GDS) library, which adds community detection, centrality algorithms and path finding that significantly extend fraud detection capabilities beyond what pure Cypher can express.
 
@@ -383,4 +451,4 @@ Neo4j is the right choice when relationships are central to your problem. Consid
 - Your team has no graph database experience. The Cypher query language is learnable, but the graph data modeling mindset - thinking in nodes and relationships rather than tables or documents - requires an adjustment. Factor in the learning curve.
 - You need GDS algorithms on a managed cloud service. The AuraDB free tier does not include the Graph Data Science library. If community detection, PageRank or shortest path algorithms are central to your use case, you need either a paid AuraDB tier or a self-hosted deployment.
 
-For problems where the connections between entities are the signal - fraud rings, recommendation networks, knowledge graphs, supply chain analysis - Neo4j offers something that no other database in this book can match: the ability to combine semantic similarity and graph traversal in a single native query, against a database that was built from the ground up to store and traverse relationships efficiently.
+For problems where the connections between entities are the signal - fraud rings, recommendation networks, knowledge graphs, supply chain analysis - Neo4j offers something the other databases in this book don't: the ability to combine semantic similarity and graph traversal in a single native query, against a database that was built from the ground up to store and traverse relationships efficiently.

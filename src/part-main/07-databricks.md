@@ -2,19 +2,19 @@
 
 ## What Is It?
 
-Databricks is a leading data and AI platform built around the lakehouse architecture - a design that combines the flexibility and scale of a data lake with the structure and governance of a data warehouse. It is where many data engineering and machine learning teams already store, process and serve their data, using Apache Spark for large-scale computation, Delta Lake for reliable storage and MLflow for experiment tracking.
+Databricks is a leading data and AI platform built around the lakehouse architecture - a design that combines the flexibility and scale of a data lake with the structure and governance of a data warehouse. It's where many data engineering and machine learning teams already store, process and serve their data, using Apache Spark for large-scale computation, Delta Lake for reliable storage and MLflow for experiment tracking.
 
-Databricks SQL adds a familiar SQL interface on top of the lakehouse, letting analysts and data engineers query Delta tables without writing Spark code. The `VECTOR_COSINE_SIMILARITY` function extends this to vector similarity search, making it straightforward to add semantic search to data that already lives in the lakehouse - without introducing a separate vector database.
+Databricks SQL adds a familiar SQL interface on top of the lakehouse, letting analysts and data engineers query Delta tables without writing Spark code. The `VECTOR_COSINE_SIMILARITY` function extends this to vector similarity search over `ARRAY<FLOAT>` embeddings, making it straightforward to add semantic search to data that already lives in the lakehouse - without introducing a separate vector database.
 
 In 2025 Databricks acquired Neon, a serverless Postgres startup. The acquisition signals Databricks' intent to extend the lakehouse to cover the full spectrum of database workloads, including the transactional and vector search use cases that Neon's `pgvector` support provides. For teams already working in Databricks, this reinforces the "stay in the lakehouse" story that this chapter demonstrates.
 
 ## When Would You Reach for It?
 
-The clearest signal is existing data and workflows in Databricks. If your data engineering pipelines, ML experiments and analytical queries already run in Databricks, adding semantic search to a Delta table is a natural extension of what you already do. There is no new system to learn, no data to move and no synchronization to maintain.
+The clearest signal is existing data and workflows in Databricks. If your data engineering pipelines, ML experiments and analytical queries already run in Databricks, adding semantic search to a Delta table is a natural extension of what you already do. There's no new system to learn, no data to move and no synchronization to maintain.
 
 The second signal is a SQL and PySpark team. Data engineers and ML practitioners who work in Databricks already know Delta Lake, Databricks SQL and the Unity Catalog. `VECTOR_COSINE_SIMILARITY` slots into this existing toolchain as a function call in a familiar SQL query.
 
-The third signal is analytics alongside search. Like Snowflake, Databricks is built for analytical workloads. If your use case requires not just "find the most relevant document" but also "how many documents exist per category" and "which authors have contributed the most", both questions can be answered in the same system with SQL queries.
+The third signal is analytics alongside search. Like Snowflake, Databricks is built for analytical workloads. If your use case requires not just "find the most relevant document" but also "how many documents exist per category" and "how many authors write in each one", both questions can be answered in the same system with SQL queries.
 
 ## The Use Case
 
@@ -37,7 +37,7 @@ The eight categories represent typical internal documentation types:
 - `ML Platform` - model deployment, feature store and experiment tracking guides
 - `Incident Reports` - post-incident reviews and root cause analyses
 
-The dataset scales via `NUM_DOCS`. Each document is generated from category-specific templates filled with randomized but realistic-sounding values. All author names are fictional.
+The dataset scales via `NUM_DOCS`. Each document is generated from category-specific templates filled with randomized but realistic-sounding values. Titles and content are filled independently from the same pools, so a title and its content can mention different tasks or systems. All author names are fictional.
 
 ## Building the Application
 
@@ -45,17 +45,17 @@ The dataset scales via `NUM_DOCS`. Each document is generated from category-spec
 
 To follow along you'll need:
 
-- A Databricks community edition account with access to a SQL warehouse
+- A Databricks Free Edition account with access to a SQL warehouse
 - Ollama running locally with the `all-minilm` model pulled
 - Python 3.12 with a virtual environment
 
 ### Generate a Personal Access Token
 
 1. In the Databricks UI, click your username in the top bar and select **Settings**
-2. Click **User > Developer**
+2. Click **Developer**
 3. Next to **Access tokens**, click **Manage**
 4. Click **Generate new token**, give it a name, select **BI Tools** as the scope type and click **Generate**
-5. Copy the token immediately
+5. Copy the token immediately, as it's only shown once
 
 ### Find Your SQL Warehouse Connection Details
 
@@ -89,7 +89,7 @@ RANDOM_SEED                = 42
 
 > **Note:** `NUM_DOCS` controls the size of the generated dataset. 200 is the recommended default for this chapter - embedding generation runs locally via Ollama and is single-threaded, so larger values will work but will take proportionally longer. Production pipelines would typically use a hosted embedding endpoint with async or batched generation to handle scale.
 
-> **Note:** Databricks Community Edition does not have a `main` catalog. The default catalog is `workspace`. If you see a `NO_SUCH_CATALOG_EXCEPTION` error, check which catalogs are available with `SHOW CATALOGS` and update `CATALOG_NAME` accordingly.
+> **Note:** The default catalog in a Free Edition workspace is `workspace`. If you see a `NO_SUCH_CATALOG_EXCEPTION` error, check which catalogs are available with `SHOW CATALOGS` and update `CATALOG_NAME` accordingly.
 
 ### Determine Embedding Dimensions
 
@@ -156,7 +156,7 @@ df["EMBEDDING"] = [str(e) for e in embeddings]
 
 ### Load Data into Databricks
 
-We'll create a Delta table and load all documents in a single bulk `INSERT`. The embedding is stored as a `STRING` column rather than a native vector type, for reasons explained below.
+We'll create a Delta table and load all documents in a single bulk `INSERT`. The embedding is stored as a `STRING` column holding JSON text, for reasons explained below.
 
 > **Note:** Inserting one row per document over a network connection to Databricks is extremely slow - each `cursor.execute()` call is a separate round trip. Concatenating all rows into a single `VALUES` clause and sending one SQL statement is significantly faster.
 
@@ -186,7 +186,7 @@ Note that single quotes in text fields must be escaped before interpolation into
 
 We'll embed the query with Ollama and pass it to Databricks SQL as a parameter. `VECTOR_COSINE_SIMILARITY` computes cosine similarity between the stored embedding and the query embedding.
 
-> **Note:** The Databricks SQL connector does not support inserting data directly into a `VECTOR` typed column, so we'll store embeddings as `STRING`. At query time, `FROM_JSON` parses the string into an `ARRAY<FLOAT>` which `VECTOR_COSINE_SIMILARITY` can operate on. Both the stored embedding and the query embedding need this cast.
+> **Note:** `VECTOR_COSINE_SIMILARITY` operates on `ARRAY<FLOAT>` values. We store the embeddings as JSON text in a `STRING` column, which keeps the bulk `INSERT` simple, and `FROM_JSON` parses the text into an `ARRAY<FLOAT>` at query time. Both the stored embedding and the query embedding need this parsing step.
 
 ```python
 def search_docs(query: str, top_k: int = 5):
@@ -210,22 +210,20 @@ def search_docs(query: str, top_k: int = 5):
     """, (query_json,))
 ```
 
-Sample results:
+Sample results (top two of five):
 
 ```text
 Query: 'how do I restart a service during an incident'
 
-  DOC00089 | Runbooks | Casey Petrov
-  Title: Runbook: clearing a stuck queue in AnalyticsAPI
-  Similarity: 0.742
-  Content: This runbook covers the procedure for clearing a stuck queue in the AnalyticsAPI
-  environment. Follow these steps in order during an incident...
+  DOC00108 | Runbooks | Reese Fontaine
+  Title: ReportingService Operations Guide
+  Similarity: 0.553
+  Content: This runbook covers the procedure for restarting the service in the EventBus environment. Follow these steps in order during an incident. First, verif...
 
-  DOC00023 | Runbooks | Morgan Chen
-  Title: StreamProcessor Operations Guide
-  Similarity: 0.731
-  Content: Use this runbook when high error rates occurs in production. The on-call engineer
-  should first check Grafana for anomalies...
+  DOC00039 | Runbooks | Casey Petrov
+  Title: Runbook: database connection exhaustion in EventBus
+  Similarity: 0.508
+  Content: This runbook documents the steps to restarting the service for the DataVault service. Prerequisites: access to the admin panel. Steps: (1) Verify aler...
 ```
 
 ### Filtered Search
@@ -258,17 +256,23 @@ def search_docs_filtered(
     """, (query_json,))
 ```
 
-Filtering to runbooks during an incident gives an immediately useful result set:
+Filtering to runbooks during an incident gives an immediately useful result set (top two of five):
 
 ```text
 query = 'steps to roll back a failed deployment', category = 'Runbooks'
 
-  DOC00012 | Runbooks | Taylor Osei
-  Title: DataPlatform Runbook: rolling back a deployment
-  Similarity: 0.798
-  Content: This runbook covers the procedure for rolling back a deployment in the DataPlatform
-  environment. Follow these steps in order during an incident...
+  DOC00024 | Runbooks | Jordan Blake
+  Title: AnalyticsAPI Runbook: scaling the cluster
+  Similarity: 0.574
+  Content: This runbook covers the procedure for rolling back a deployment in the SearchEngine environment. Follow these steps in order during an incident. First...
+
+  DOC00138 | Runbooks | Riley Kumar
+  Title: Runbook: high error rates in DataVault
+  Similarity: 0.547
+  Content: This runbook covers the procedure for rolling back a deployment in the DataVault environment. Follow these steps in order during an incident. First, v...
 ```
+
+The first title says "scaling the cluster" while the content is about rolling back a deployment. That's the independent title and content filling described earlier, not a search error.
 
 ### Analytics with SQL
 
@@ -291,13 +295,13 @@ No second system, no result merging, no data movement. The semantic search and t
 
 ## What You'd Hit in Production
 
-**Community Edition credit limits.** The Databricks Community Edition runs on serverless compute with a daily credit allowance. The credit allowance can be exhausted quickly if you leave a SQL warehouse running or run large queries repeatedly.
+**Free Edition usage limits.** Databricks Free Edition runs on serverless compute with a usage quota. The quota can be used up quickly if you run large queries repeatedly.
 
-**`FROM_JSON` overhead.** Casting `STRING` to `ARRAY<FLOAT>` via `FROM_JSON` at query time adds overhead compared to storing embeddings natively as a vector type. For production, investigate whether storing embeddings in a native `ARRAY<FLOAT>` column directly - bypassing the JSON serialization step - is possible with your version of the connector. The `FROM_JSON` approach is reliable and readable but not optimal for very large tables.
+**`FROM_JSON` overhead.** Parsing a `STRING` into an `ARRAY<FLOAT>` via `FROM_JSON` adds overhead for every row on every query. For production, store the embeddings in an `ARRAY<FLOAT>` column and convert them once at load time. The `FROM_JSON` approach is reliable and readable but isn't optimal for very large tables.
 
-**Full table scan.** `VECTOR_COSINE_SIMILARITY` on a `STRING` column performs a full table scan to compute similarity for every row before sorting and limiting. For datasets with hundreds of thousands of documents this will become slow. Databricks Vector Search - available on paid tiers - uses approximate nearest neighbor indexing to avoid this. For the community edition, keeping the dataset to a smaller number of documents is a practical limit.
+**Full table scan.** Every query parses the stored embedding and computes the similarity for every row before sorting and limiting. For datasets with hundreds of thousands of documents this will become slow. Databricks Vector Search uses approximate nearest neighbor indexing to avoid this, but check whether it's available on your plan. On Free Edition, keeping the dataset to a smaller number of documents is a practical limit.
 
-**Databricks Vector Search.** The paid tier offers a managed Vector Search service backed by Delta tables, with approximate nearest neighbor indexing and automatic sync as the underlying table changes. This is the production path for large-scale semantic search in Databricks and avoids the full scan limitation entirely. The community edition approach in this chapter demonstrates the same concept with standard SQL functions as a starting point.
+**Databricks Vector Search.** Databricks also offers a managed Vector Search service backed by Delta tables, with approximate nearest neighbor indexing and automatic sync as the underlying table changes. Availability depends on your plan. This is the production path for large-scale semantic search in Databricks and avoids the full scan limitation entirely. The approach in this chapter demonstrates the same concept with standard SQL functions as a starting point.
 
 **Bulk insert limit.** The single-statement bulk insert approach works well for datasets up to a few hundred documents. For larger datasets the SQL string becomes very large and may hit connector or warehouse limits. For production bulk loads, use Databricks' native data ingestion tools such as `COPY INTO` or the Auto Loader, which are designed for large-scale data movement into Delta tables.
 
@@ -305,7 +309,7 @@ No second system, no result merging, no data movement. The semantic search and t
 
 ## Lakebase - pgvector Inside the Lakehouse
 
-Databricks Lakebase is a fully managed Postgres database integrated directly into the Databricks platform. It is the product of Databricks' acquisition of Neon in 2025 and brings serverless Postgres with `pgvector` into the lakehouse context - available on the free tier with scale-to-zero compute and one project per account.
+Databricks Lakebase is a fully managed Postgres database integrated directly into the Databricks platform. It's the product of Databricks' acquisition of Neon in 2025 and brings serverless Postgres with `pgvector` into the lakehouse context, with scale-to-zero compute.
 
 This is significant for the book's story. Day 1 started with `pgvector` on a local Postgres install. Day 7 ends with `pgvector` running inside the Databricks lakehouse as a fully managed service. The underlying technology is the same; the operational context is completely different.
 
@@ -357,7 +361,7 @@ lb_cursor.execute("CREATE EXTENSION IF NOT EXISTS vector;")
 
 ### Native Vector Column
 
-Unlike the Delta table approach earlier in this chapter, Lakebase supports the native vector type directly. There is no `FROM_JSON` cast required - embeddings are stored and queried as proper vector columns:
+Unlike the Delta table approach earlier in this chapter, Lakebase supports the `pgvector` `VECTOR` type directly. There's no `FROM_JSON` cast required - embeddings are stored and queried as proper vector columns:
 
 ```python
 lb_cursor.execute(f"""
@@ -394,7 +398,7 @@ lb_cursor.execute(f"""
 """, (str(query_embedding), str(query_embedding), top_k))
 ```
 
-Sample output:
+Sample output (top result of five):
 
 ```text
 Lakebase query: 'how do I restart a service during an incident'
@@ -402,9 +406,10 @@ Lakebase query: 'how do I restart a service during an incident'
   DOC00108 | Runbooks | Reese Fontaine
   Title: ReportingService Operations Guide
   Similarity: 0.553
-  Content: This runbook covers the procedure for restarting the service
-  in the EventBus environment. Follow these steps in order during an incident...
+  Content: This runbook covers the procedure for restarting the service in the EventBus environment. Follow these steps in order during an incident. First, verif...
 ```
+
+All five results and their scores are identical to the Delta table search earlier in the chapter, which is a useful cross-check that both approaches compute the same cosine similarity.
 
 The Lakebase connection, the vector column and the `<=>` operator are all standard Postgres and `pgvector` - the same as Day 1. What has changed is the operational context: the database is fully managed, scales to zero when idle and lives inside the Databricks platform alongside Delta tables, ML models and pipelines.
 
@@ -412,9 +417,9 @@ The Lakebase connection, the vector column and the `<=>` operator are all standa
 
 Databricks is the right choice when your data and workflows already live there. Consider alternatives if:
 
-- You have no existing Databricks footprint. Databricks is a paid platform and standing it up just for vector search is hard to justify when simpler options exist. Day 1 (`pgvector`) and Day 3 (Pinecone) are considerably easier starting points.
-- You need sub-second semantic search at large scale without a paid tier. The full table scan approach in this chapter does not scale to millions of documents at interactive latency. Databricks Vector Search on a paid tier addresses this, but the community edition does not.
+- You have no existing Databricks footprint. Databricks is a commercial platform and standing it up just for vector search is hard to justify when simpler options exist. Day 1 (`pgvector`) and Day 3 (Pinecone) are considerably easier starting points.
+- You need sub-second semantic search at large scale. The full table scan approach in this chapter doesn't scale to millions of documents at interactive latency. Databricks Vector Search addresses this with approximate nearest neighbor indexing, but it's a separate service to set up.
 - Your team is not already working in SQL or PySpark. The Databricks connector-based approach adds friction compared to databases with richer Python SDKs designed for application developers.
-- You need the embedding pipeline to be fully managed. This chapter generates embeddings locally with Ollama. Databricks does offer managed embedding models through its Foundation Model APIs on paid tiers, but the community edition requires an external embedding step.
+- You need the embedding pipeline to be fully managed. This chapter generates embeddings locally with Ollama. Databricks does offer managed embedding models through its Foundation Model APIs, and using them would remove the external embedding step.
 
 For data and ML teams already living in Databricks, adding semantic search to a Delta table is a natural and low-friction extension of existing workflows. The ability to combine document retrieval with full analytical SQL in a single system - without moving data or managing a separate vector service - makes Databricks a compelling choice for the right team.

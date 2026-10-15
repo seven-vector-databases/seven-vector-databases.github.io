@@ -4,7 +4,7 @@
 
 Weaviate is an open-source vector database with a managed cloud offering. Unlike the pure-play managed approach of Day 3, Weaviate can be self-hosted or run as a fully managed service on Weaviate Cloud. Its defining feature is hybrid search - the ability to combine vector similarity, BM25 keyword matching and metadata filtering in a single query, without needing to orchestrate separate systems.
 
-Weaviate organizes data in **collections**. Each collection has a defined schema with typed properties - text, integers, arrays and more. This schema-aware approach means data are validated at write time and queries can take advantage of strong typing when filtering. Vectors are stored alongside the document properties on the same object, so there is no separate metadata store to maintain.
+Weaviate organizes data in **collections**. Each collection has a defined schema with typed properties - text, integers, arrays and more. This schema-aware approach means data are validated at write time and queries can take advantage of strong typing when filtering. Vectors are stored alongside the document properties on the same object, so there's no separate metadata store to maintain.
 
 ## When Would You Reach for It?
 
@@ -12,7 +12,7 @@ The clearest signal is a hybrid search requirement. If your use case benefits fr
 
 The second signal is rich structured metadata alongside free-text content. Research papers, legal documents, product manuals and support tickets all have structured fields, such as dates, categories, authors, ratings, that users want to filter on alongside semantic search. In Weaviate, any property defined in the collection schema can be used as a filter at query time without any additional index declaration.
 
-The third signal is open-source flexibility. Weaviate is Apache 2.0 licensed and can be self-hosted on your own infrastructure. For teams with data residency requirements or a preference for running their own stack, this is a meaningful advantage over fully managed proprietary options.
+The third signal is open-source flexibility. Weaviate is BSD 3-Clause licensed and can be self-hosted on your own infrastructure. For teams with data residency requirements or a preference for running their own stack, this is a meaningful advantage over fully managed proprietary options.
 
 ## The Use Case
 
@@ -46,12 +46,12 @@ To follow along you'll need:
 
 ### Create a Free Weaviate Cloud Cluster
 
-If you do not already have a cluster:
+If you don't already have a cluster:
 
 1. Go to [Weaviate Console](https://console.weaviate.cloud) and create an account
 2. Click **Create new cluster > Free**
 3. Give the cluster a name (e.g. `papers`)
-4. Accept all the other default options and and click **Create cluster**
+4. Accept all the other default options and click **Create cluster**
 5. Click the **How to connect** button and note down the `WEAVIATE_URL`
 6. From the cluster page select **API Keys**, create a new **Admin** key and note it down
 
@@ -147,9 +147,9 @@ papers = [generate_paper() for _ in range(NUM_PAPERS)]
 
 ### Create the Weaviate Collection
 
-Weaviate organizes data in **collections**. Each collection has a defined schema with typed properties. We'll use `Configure.Vectors.self_provided()` since we are supplying our own embeddings from Ollama rather than using one of Weaviate's built-in vectorizers.
+Weaviate organizes data in **collections**. Each collection has a defined schema with typed properties. We'll use `Configure.Vectors.self_provided()` since we're supplying our own embeddings from Ollama rather than using one of Weaviate's built-in vectorizers.
 
-> **Note** The Weaviate Cloud free tier only supports the `hfresh` vector index type. `HNSW` is not available on the free tier. Use `Configure.VectorIndex.hfresh()` rather than `Configure.VectorIndex.hnsw()`.
+> **Note** The Weaviate Cloud free tier only supports the `hfresh` vector index type. `HNSW` isn't available on the free tier. Use `Configure.VectorIndex.hfresh()` rather than `Configure.VectorIndex.hnsw()`.
 
 > **Note:** The free tier allows only one collection per cluster. If the collection already exists from a previous run, delete it before recreating.
 
@@ -204,6 +204,27 @@ with collection.batch.dynamic() as batch:
 print(f"\nInserted {collection.aggregate.over_all().total_count} papers.")
 ```
 
+### Wait for the Vector Index to be Ready
+
+Weaviate can take a short time to make newly inserted vectors searchable, so a query run straight after loading may return nothing. Rather than guessing at a delay, we run a small test query and wait until it returns a result:
+
+```python
+print("Waiting for the vector index to be ready...")
+
+while True:
+    test = collection.query.near_vector(
+        near_vector = get_embedding("test"),
+        limit       = 1,
+    )
+    if test.objects:
+        print("Index is ready.")
+        break
+    print("  Index not yet ready - waiting...")
+    time.sleep(5)
+```
+
+The loop issues a real vector query and waits until it returns an object. This is the most reliable signal that the index is ready for use.
+
 ### Semantic Search
 
 We'll start with pure vector search using `collection.query.near_vector()` to establish a baseline before introducing hybrid search. The `MetadataQuery(distance = True)` parameter returns the cosine distance alongside each result:
@@ -228,7 +249,7 @@ def search_papers(query: str, top_k: int = 5):
         print()
 ```
 
-A sample result:
+A sample result (the top two of five are shown):
 
 ```text
 search_papers("transformer models for natural language understanding")
@@ -243,7 +264,7 @@ Query: 'transformer models for natural language understanding'
   Efficient Transformer Models for Natural Language Processing
   Natural Language Processing | Symposium on Knowledge Discovery and Data Mining | 2022 | Citations: 18
   Authors: Chen Kumar, Fatima Kim, Fatima Li, Fatima Smith, Carlos Kim
-  Distance: 0.272
+  Distance: 0.273
 ```
 
 ### Hybrid Search
@@ -295,6 +316,8 @@ alpha = 1.0 (pure vector)
   Score: 1.000
 ```
 
+The block shows only the top result at each alpha. In the full output the same three papers appear at every alpha and only their order and scores change, and the top result is identical at `alpha = 0.5` and `alpha = 1.0`, so on a small dataset like this the differences are subtle. Note also that hybrid scores are normalized within each result set, so the best match tends toward 1.000 and the weakest toward 0.000. Compare scores within a query rather than across queries.
+
 For research paper discovery, a balanced blend works well because users often include specific technical terms alongside more general intent.
 
 ### Filtered Hybrid Search
@@ -334,7 +357,7 @@ def hybrid_search_filtered(
     )
 ```
 
-Natural Language Processing papers from 2020 onwards with at least 100 citations:
+Natural Language Processing papers from 2020 onwards with at least 100 citations (the top two of five results are shown):
 
 ```text
 hybrid_search_filtered(
@@ -356,7 +379,7 @@ field = 'Natural Language Processing', min_year = 2020, min_citations = 100
   Score: 0.500
 ```
 
-Recent computer vision papers on object detection:
+Recent computer vision papers on object detection (again the top two of five results):
 
 ```text
 hybrid_search_filtered(
@@ -379,17 +402,19 @@ field = 'Computer Vision', min_year = 2022
 
 ## What You'd Hit in Production
 
-**Free tier limitations.** The Weaviate Cloud free tier supports one collection per cluster and only the `hfresh` vector index type. `HNSW`, which offers better recall at scale, requires a paid tier. For production workloads with more than a few hundred thousand vectors, upgrade to a paid plan.
+**Free tier limitations.** The Weaviate Cloud free tier supports one collection per cluster, up to 100,000 objects and only the `hfresh` vector index type. `HNSW` requires a paid plan. For production workloads beyond those limits, upgrade to a paid plan.
 
-**hfresh vs HNSW.** The `hfresh` index type is optimized for fresh data and low-latency insertions. `HNSW` offers better approximate nearest neighbor recall at large scale. On the free tier you'll not notice a difference at a few hundred papers, but it's worth understanding the distinction before moving to production.
+**hfresh vs HNSW.** The `hfresh` index type is designed for memory-constrained deployments. It keeps only a compressed centroid index in memory and rebalances its posting lists in the background as data change, so it avoids full rebuilds. `HNSW` keeps its graph in memory and gives very fast queries, but it uses more memory and can be costly to maintain as the data grow. On the free tier you won't notice a difference at a few hundred papers, but it's worth understanding the distinction before moving to production.
 
 **Alpha tuning.** The right `alpha` value depends on the data and query patterns. For queries with specific technical terms, a lower alpha (more BM25) improves recall of papers that contain those exact terms. For more exploratory queries, a higher alpha (more vector) surfaces semantically related content even when the exact terms are absent. Experiment with your own queries to find the right balance.
 
-**Collection limit on free tier.** The free tier allows only one collection per cluster. If you need to reload data, delete the existing collection first using `client.collections.delete(COLLECTION_NAME)` before recreating it. Deleting a Weaviate collection removes everything including the schema.
+**Reloading data on the free tier.** With only one collection allowed, delete the existing collection first using `client.collections.delete(COLLECTION_NAME)` before recreating it. Deleting a Weaviate collection removes everything including the schema.
 
-**Batch insert behavior.** Weaviate's `batch.dynamic()` mode adjusts the batch size automatically based on server response times. For large datasets this is more efficient than fixed-size batches. Errors during batch insert are collected rather than raised immediately - check `batch.failed_objects` after the context manager exits to catch any insertion failures.
+**Batch insert behavior.** Weaviate's `batch.dynamic()` mode adjusts the batch size automatically based on server response times. For large datasets this is more efficient than fixed-size batches. Errors during batch insert are collected rather than raised immediately. Inside the context manager `batch.number_errors` holds a running count, and after it exits `collection.batch.failed_objects` lists any objects that failed to insert.
 
-**Self-hosting.** Weaviate can be run locally via Docker if you prefer not to use the managed cloud service. The self-hosted version supports `HNSW` on all tiers and has no collection limits. This is worth considering for production deployments with data residency requirements.
+**Index readiness.** Newly inserted vectors may not be searchable immediately. Budget for this in any automated pipeline that loads data and queries it straight away, and confirm readiness with a test query as shown above.
+
+**Self-hosting.** Weaviate can be run locally via Docker if you prefer not to use the managed cloud service. The self-hosted version supports `HNSW` and has no collection limit. This is worth considering for production deployments with data residency requirements.
 
 ## When to Look Elsewhere
 
