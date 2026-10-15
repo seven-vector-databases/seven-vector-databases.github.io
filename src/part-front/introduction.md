@@ -1,6 +1,6 @@
 # Introduction
 
-## Why Vector Databases?
+## Why vector databases?
 
 Something changed in software development around 2022. Applications began needing to search not just for exact matches - a user ID, a product SKU, a keyword - but for meaning. "Find me something like this." "What documents are relevant to this question?" "Which past support tickets are similar to this one?" These aren't keyword search problems. They're similarity problems and the data structure that makes similarity search practical at scale is the vector embedding.
 
@@ -8,7 +8,7 @@ A vector embedding is a list of numbers - typically hundreds or thousands of the
 
 Vector databases are systems built to store these embeddings and search across them efficiently. Some are purpose-built for the task. Others are general-purpose databases that have added vector search as a capability. The field has expanded rapidly and evaluating the options is now a real problem for teams building AI-powered features.
 
-## What This Book Is About
+## What this book is about
 
 This book isn't a comparison of vector databases. It won't tell you which one is "best." It won't produce a ranking or a scorecard.
 
@@ -28,13 +28,13 @@ The seven databases covered are:
 
 The progression is deliberate. We start with the familiar - Postgres, which most developers already have - and move through a document database, two dedicated vector databases, a graph database and, finally, the major data platforms. By the end, you'll have a clear picture of where vector search fits in each architecture and what trade-offs each approach involves.
 
-## Who This Book Is For
+## Who this book is for
 
 This book is written for developers, data engineers and architects who are evaluating vector database options for a real project. It assumes you're comfortable with Python and SQL. It doesn't assume any prior experience with vector databases, embeddings or machine learning.
 
 If you're building a RAG application and wondering whether to use Pinecone, pgvector or something else - this book is for you. If you have data in Snowflake or Databricks and are wondering whether you need a separate vector database - this book is for you. If you're new to vector search and want a practical grounding before making architectural decisions - this book is for you.
 
-## How the Book Is Structured
+## How the book is structured
 
 Each chapter follows the same structure:
 
@@ -48,17 +48,17 @@ Each chapter follows the same structure:
 
 Every chapter comes with a Jupyter notebook. The notebooks are self-contained and independently runnable. They use `all-minilm` via Ollama for local embedding generation, which means no embedding API keys or costs in any chapter. Where a managed cloud service is required - MongoDB Atlas, Pinecone, Weaviate Cloud, Neo4j AuraDB, Snowflake and Databricks - a free tier or trial account is sufficient for all the examples in the book.
 
-## A Note on the "Seven Days" Format
+## A note on the "seven days" format
 
 The "seven days" framing is a nod to the tradition of books like *Seven Languages in Seven Weeks* and *Seven Databases in Seven Weeks*. The format carries a specific promise: enough depth to form a genuine opinion, structured as a journey rather than a reference. You're not expected to read this book in seven calendar days, but each chapter is written to stand alone, so you can read them in order or jump to the chapters most relevant to your situation.
 
-## A Note on Embeddings
+## A note on embeddings
 
 Throughout the book we use the `all-minilm` model via Ollama to generate embeddings. This model produces 384-dimensional vectors and runs entirely locally on your machine. It isn't the most powerful embedding model available - OpenAI's `text-embedding-3-large` or Cohere's embed models would produce higher-quality embeddings - but it's free, fast and consistent across all seven chapters, which makes it ideal for a tutorial context.
 
 In production, the choice of embedding model matters and deserves its own evaluation. The model, the chunking strategy and the indexing approach all interact. This book focuses on the database layer; the embedding layer is a separate concern that we deliberately keep constant so the database differences are the variable.
 
-## Code and Notebooks
+## Code and notebooks
 
 All notebooks and source code are available at:
 

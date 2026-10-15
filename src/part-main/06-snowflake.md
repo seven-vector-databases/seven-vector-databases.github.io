@@ -1,6 +1,6 @@
 # Day 6: Snowflake
 
-## What Is It?
+## What is it?
 
 Snowflake is a leading cloud data platform. It's where many organizations already store their operational and analytical data - data warehouse exports, CRM records, support tickets, event logs and more. Rather than moving that data to a separate vector database, Snowflake's native `VECTOR` data type and `VECTOR_COSINE_SIMILARITY` function bring vector similarity search directly to the data where it already lives.
 
@@ -8,7 +8,7 @@ This is a different proposition from the previous five days. Snowflake isn't a v
 
 Snowflake's vector support consists of two main pieces. The `VECTOR` data type stores fixed-dimension floating-point vectors natively. The `VECTOR_COSINE_SIMILARITY` function computes cosine similarity between two vectors in a SQL query. Both are available in the trial account used in this chapter.
 
-## When Would You Reach for It?
+## When would you reach for it?
 
 The clearest signal is existing data in Snowflake. If your organization's data are already in Snowflake - and for many data engineering and analytics teams it is - adding semantic search is a matter of storing embeddings in a new column and writing a SQL query. There is no new system to provision, no data to move and no synchronization to maintain.
 
@@ -16,13 +16,13 @@ The second signal is a SQL-native team. Data engineers and analysts who already 
 
 The third signal is analytics alongside search. Snowflake is built for analytical workloads. If your use case requires not just "find similar tickets" but also "how many critical tickets are unresolved this week" and "what is the average resolution time by category", both questions can be answered in the same database with the same SQL toolchain.
 
-## The Use Case
+## The use case
 
 For this chapter we'll build a customer support analytics system. Support teams can describe an issue in natural language - "customer cannot log in after forgetting their password" or "application is slow and pages take a long time to load" - and find the most relevant historical tickets from the database. Filters by category, priority and status let teams narrow results to the most actionable matches. A summary analytics query shows ticket volumes and resolution rates by category alongside the semantic search.
 
 This is a natural fit for Snowflake. Support ticket data lives in data warehouses and CRM systems. The people who work with it - support operations, customer success and analytics teams - are SQL users. Adding semantic search without leaving SQL is a meaningful reduction in operational complexity.
 
-## The Data
+## The data
 
 We generate synthetic customer support tickets from pools of categories, priorities, products, statuses and description templates. Each ticket has a free-text description and an optional resolution note.
 
@@ -39,7 +39,7 @@ The key fields are:
 
 Resolution notes are only present for tickets with a status of "Resolved" or "Closed", which reflects real-world ticket data. This makes resolved tickets particularly useful for finding past solutions to current problems.
 
-## Building the Application
+## Building the application
 
 ### Prerequisites
 
@@ -79,7 +79,7 @@ RANDOM_SEED         = 42
 
 > **Note:** `NUM_TICKETS` controls the size of the generated dataset. 200 is the recommended default for this chapter - embedding generation runs locally via Ollama and is single-threaded, so larger values will work but will take proportionally longer. Production pipelines would typically use a hosted embedding endpoint with async or batched generation to handle scale.
 
-### Determine Embedding Dimensions
+### Determine embedding dimensions
 
 We'll determine the embedding dimensions dynamically from a test embedding:
 
@@ -107,7 +107,7 @@ cursor = conn.cursor()
 print(f"Connected to Snowflake: {conn.account}")
 ```
 
-### Create Database, Schema and Warehouse
+### Create database, schema and warehouse
 
 We'll create all infrastructure programmatically using `cursor.execute()`. The warehouse is set to `X-SMALL` with `AUTO_SUSPEND = 60` to minimize credit consumption:
 
@@ -126,7 +126,7 @@ cursor.execute(f"""
 cursor.execute(f"USE WAREHOUSE {SNOWFLAKE_WAREHOUSE}")
 ```
 
-### Generate the Dataset
+### Generate the dataset
 
 Description templates are category-specific so each ticket gets a relevant, realistic description:
 
@@ -159,7 +159,7 @@ def generate_ticket(ticket_id: int) -> dict:
     }
 ```
 
-### Generate Embeddings
+### Generate embeddings
 
 We embed each ticket description locally with Ollama and store the result as a string in a new `EMBEDDING` column on the DataFrame:
 
@@ -173,7 +173,7 @@ df["EMBEDDING"] = [str(e) for e in embeddings]
 
 The embedding is stored as a string because the connector can't load `VECTOR` columns directly. We cast it to `VECTOR` at query time.
 
-### Load Data into Snowflake
+### Load data into Snowflake
 
 We'll create the table with an `EMBEDDING VARCHAR(16000)` column and load the data using `write_pandas`:
 
@@ -199,7 +199,7 @@ success, num_chunks, num_rows, _ = write_pandas(
 )
 ```
 
-### Semantic Search
+### Semantic search
 
 We'll embed the query with Ollama, pass it to Snowflake as a SQL parameter and use `VECTOR_COSINE_SIMILARITY` to rank results.
 
@@ -248,7 +248,7 @@ Query: 'customer cannot log in after forgetting their password'
 
 The two tickets have identical descriptions, so their similarity scores are identical. The generated dataset has only five description templates per category, so ties like this are common. The next three results are two-factor authentication tickets that score 0.492 each, and the order among tied tickets isn't guaranteed to be the same from one query to the next.
 
-### Filtered Search
+### Filtered search
 
 Because the tickets live in a standard Snowflake table, filtering is plain SQL. We'll add `WHERE` clauses to the similarity query - no special filter syntax, no filter index declaration, no attribute list defined at index creation time. Any column in the table can be used as a filter:
 
@@ -327,7 +327,7 @@ summary = cursor.fetch_pandas_all()
 
 No second system, no result merging, no data movement. The semantic search and the analytics live in the same table and run against the same Snowflake warehouse.
 
-## What You'd Hit in Production
+## What you'd hit in production
 
 **Cortex Search on trial accounts.** Snowflake Cortex Search handles embedding generation internally and provides a managed search service. However, the underlying embedding functions may not be available on trial accounts, depending on region and account privileges. For production use with a paid Snowflake account, Cortex Search is worth evaluating - it removes the need for an external embedding pipeline and manages index updates as the table changes. For trial accounts or teams with an existing embedding pipeline, the `VECTOR` + `VECTOR_COSINE_SIMILARITY` approach shown in this chapter is an alternative.
 
@@ -341,7 +341,7 @@ No second system, no result merging, no data movement. The semantic search and t
 
 **Snowflake Postgres and pgvector.** For applications that need full Postgres semantics alongside Snowflake data, Snowflake Postgres provides a fully managed Postgres with `pgvector` integrated directly into the platform. See the Snowflake Postgres section below for a working example.
 
-## Snowflake Postgres - pgvector Inside the Data Platform
+## Snowflake Postgres - pgvector inside the data platform
 
 Snowflake Postgres is a fully managed Postgres database integrated directly into the Snowflake platform, available under **Manage > Postgres** in the Snowflake UI. It's built on Crunchy Data technology following Snowflake's acquisition of the company, and brings standard Postgres with `pgvector` into the data platform context, alongside Snowflake tables, warehouses and governance features.
 
@@ -398,7 +398,7 @@ pg_cursor = pg_conn.cursor()
 pg_cursor.execute("CREATE EXTENSION IF NOT EXISTS vector;")
 ```
 
-### Native Vector Column
+### Native vector column
 
 Snowflake Postgres supports the native vector type directly. There is no `TRY_PARSE_JSON` cast required - embeddings are stored and queried as proper vector columns, unlike the `VARCHAR` approach used with the main Snowflake connector earlier in this chapter:
 
@@ -463,7 +463,7 @@ The top two results match the Snowflake query above, which confirms that both ap
 
 The connection, the vector column and the `<=>` operator are all standard Postgres and `pgvector` - the same as Day 1. What has changed is the operational context: the database is fully managed and lives inside the Snowflake platform alongside tables, warehouses and governance features.
 
-## When to Look Elsewhere
+## When to look elsewhere
 
 Snowflake is the right choice when your data are already there. Consider alternatives if:
 

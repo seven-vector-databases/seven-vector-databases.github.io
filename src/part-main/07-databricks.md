@@ -1,6 +1,6 @@
 # Day 7: Databricks
 
-## What Is It?
+## What is it?
 
 Databricks is a leading data and AI platform built around the lakehouse architecture - a design that combines the flexibility and scale of a data lake with the structure and governance of a data warehouse. It's where many data engineering and machine learning teams already store, process and serve their data, using Apache Spark for large-scale computation, Delta Lake for reliable storage and MLflow for experiment tracking.
 
@@ -8,7 +8,7 @@ Databricks SQL adds a familiar SQL interface on top of the lakehouse, letting an
 
 In 2025 Databricks acquired Neon, a serverless Postgres startup. The acquisition signals Databricks' intent to extend the lakehouse to cover the full spectrum of database workloads, including the transactional and vector search use cases that Neon's `pgvector` support provides. For teams already working in Databricks, this reinforces the "stay in the lakehouse" story that this chapter demonstrates.
 
-## When Would You Reach for It?
+## When would you reach for it?
 
 The clearest signal is existing data and workflows in Databricks. If your data engineering pipelines, ML experiments and analytical queries already run in Databricks, adding semantic search to a Delta table is a natural extension of what you already do. There's no new system to learn, no data to move and no synchronization to maintain.
 
@@ -16,13 +16,13 @@ The second signal is a SQL and PySpark team. Data engineers and ML practitioners
 
 The third signal is analytics alongside search. Like Snowflake, Databricks is built for analytical workloads. If your use case requires not just "find the most relevant document" but also "how many documents exist per category" and "how many authors write in each one", both questions can be answered in the same system with SQL queries.
 
-## The Use Case
+## The use case
 
 For this chapter we'll build a RAG retrieval layer over internal technical documents - architecture notes, runbooks, API guides, security policies and onboarding materials. Users ask questions in natural language - "how do I restart a service during an incident" or "what are the security requirements for storing sensitive data" - and the system finds the most relevant documents from the corpus.
 
 This is a natural fit for Databricks. Internal technical documentation is exactly the kind of content that data and engineering teams generate, store and share within a data platform. Keeping it searchable in the same system where teams already work reduces friction and keeps governance centralized.
 
-## The Data
+## The data
 
 We'll generate synthetic internal technical wiki documents from pools of categories, authors and content templates. Each document has a title, category, author and a prose content field - the content is what we'll embed and search over.
 
@@ -39,7 +39,7 @@ The eight categories represent typical internal documentation types:
 
 The dataset scales via `NUM_DOCS`. Each document is generated from category-specific templates filled with randomized but realistic-sounding values. Titles and content are filled independently from the same pools, so a title and its content can mention different tasks or systems. All author names are fictional.
 
-## Building the Application
+## Building the application
 
 ### Prerequisites
 
@@ -49,7 +49,7 @@ To follow along you'll need:
 - Ollama running locally with the `all-minilm` model pulled
 - Python 3.12 with a virtual environment
 
-### Generate a Personal Access Token
+### Generate a personal access token
 
 1. In the Databricks UI, click your username in the top bar and select **Settings**
 2. Click **Developer**
@@ -57,7 +57,7 @@ To follow along you'll need:
 4. Click **Generate new token**, give it a name, select **BI Tools** as the scope type and click **Generate**
 5. Copy the token immediately, as it's only shown once
 
-### Find Your SQL Warehouse Connection Details
+### Find your SQL warehouse connection details
 
 1. In the Databricks UI, go to **SQL > SQL Warehouses**
 2. Click your warehouse and select **Connection details**
@@ -91,7 +91,7 @@ RANDOM_SEED                = 42
 
 > **Note:** The default catalog in a Free Edition workspace is `workspace`. If you see a `NO_SUCH_CATALOG_EXCEPTION` error, check which catalogs are available with `SHOW CATALOGS` and update `CATALOG_NAME` accordingly.
 
-### Determine Embedding Dimensions
+### Determine embedding dimensions
 
 We'll determine the embedding dimensions dynamically from a test embedding:
 
@@ -118,7 +118,7 @@ cursor = conn.cursor()
 print("Connected to Databricks.")
 ```
 
-### Generate the Dataset
+### Generate the dataset
 
 Documents are assembled from category-specific content templates filled with randomized values from component pools. Each category has its own set of templates so the content is relevant to the category:
 
@@ -142,7 +142,7 @@ CONTENT_TEMPLATES = {
 }
 ```
 
-### Generate Embeddings
+### Generate embeddings
 
 We'll embed the content of each document locally using Ollama. The embedding is stored as a string and cast to `ARRAY<FLOAT>` at query time:
 
@@ -154,7 +154,7 @@ for doc in tqdm(documents, desc = "Generating embeddings"):
 df["EMBEDDING"] = [str(e) for e in embeddings]
 ```
 
-### Load Data into Databricks
+### Load data into Databricks
 
 We'll create a Delta table and load all documents in a single bulk `INSERT`. The embedding is stored as a `STRING` column holding JSON text, for reasons explained below.
 
@@ -182,7 +182,7 @@ cursor.execute(f"""
 
 Note that single quotes in text fields must be escaped before interpolation into the SQL string.
 
-### Semantic Search
+### Semantic search
 
 We'll embed the query with Ollama and pass it to Databricks SQL as a parameter. `VECTOR_COSINE_SIMILARITY` computes cosine similarity between the stored embedding and the query embedding.
 
@@ -226,7 +226,7 @@ Query: 'how do I restart a service during an incident'
   Content: This runbook documents the steps to restarting the service for the DataVault service. Prerequisites: access to the admin panel. Steps: (1) Verify aler...
 ```
 
-### Filtered Search
+### Filtered search
 
 Because the documents live in a standard Delta table, filtering is plain SQL. Any column in the table can be used as a filter - no attribute declaration, no separate filter index:
 
@@ -293,7 +293,7 @@ cursor.execute(f"""
 
 No second system, no result merging, no data movement. The semantic search and the analytics run against the same Delta table in the same Databricks SQL warehouse.
 
-## What You'd Hit in Production
+## What you'd hit in production
 
 **Free Edition usage limits.** Databricks Free Edition runs on serverless compute with a usage quota. The quota can be used up quickly if you run large queries repeatedly.
 
@@ -307,7 +307,7 @@ No second system, no result merging, no data movement. The semantic search and t
 
 **Lakebase and pgvector.** For production RAG applications that need low-latency reads and full Postgres semantics alongside lakehouse data, Databricks Lakebase provides a fully managed Postgres with `pgvector` integrated directly into the platform. See the Lakebase section below for a working example.
 
-## Lakebase - pgvector Inside the Lakehouse
+## Lakebase - pgvector inside the Lakehouse
 
 Databricks Lakebase is a fully managed Postgres database integrated directly into the Databricks platform. It's the product of Databricks' acquisition of Neon in 2025 and brings serverless Postgres with `pgvector` into the lakehouse context, with scale-to-zero compute.
 
@@ -359,7 +359,7 @@ lb_conn = psycopg2.connect(
 lb_cursor.execute("CREATE EXTENSION IF NOT EXISTS vector;")
 ```
 
-### Native Vector Column
+### Native vector column
 
 Unlike the Delta table approach earlier in this chapter, Lakebase supports the `pgvector` `VECTOR` type directly. There's no `FROM_JSON` cast required - embeddings are stored and queried as proper vector columns:
 
@@ -413,7 +413,7 @@ All five results and their scores are identical to the Delta table search earlie
 
 The Lakebase connection, the vector column and the `<=>` operator are all standard Postgres and `pgvector` - the same as Day 1. What has changed is the operational context: the database is fully managed, scales to zero when idle and lives inside the Databricks platform alongside Delta tables, ML models and pipelines.
 
-## When to Look Elsewhere
+## When to look elsewhere
 
 Databricks is the right choice when your data and workflows already live there. Consider alternatives if:
 

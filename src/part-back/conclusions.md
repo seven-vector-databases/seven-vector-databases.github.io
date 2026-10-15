@@ -1,12 +1,12 @@
 # Conclusions
 
-## What We Built
+## What we built
 
 Over seven days we built seven working applications, each demonstrating vector similarity search in a different database against a different use case. We searched job listings, found recipes, searched electronics products, discovered research papers, detected fraud, analyzed support tickets and retrieved internal documents. Every example used the same embedding model, the same general chapter structure and the same honest framing: here is what this database is genuinely good at and here is when you should look elsewhere.
 
 The notebooks are real. The gotchas are real. The "when to look elsewhere" sections are meant. This isn't a marketing guide.
 
-## What We Learned
+## What we learned
 
 ### The right database depends on where your data already lives
 
@@ -36,7 +36,7 @@ These aren't edge cases. They're the real experience of setting up these systems
 
 One observation that cuts across the whole book: pgvector has spread far beyond standalone Postgres. It powers Databricks Lakebase, which came from the Neon acquisition. It's available in Snowflake Postgres, which is built on Crunchy Data technology, and in managed Postgres offerings such as Supabase. The book starts with pgvector on a local Mac install and ends with pgvector running inside the Databricks lakehouse as a fully managed service. The underlying technology is the same. The operational context has changed completely.
 
-## Choosing the Right Database
+## Choosing the right database
 
 Rather than a ranking, here is a practical decision guide based on what we learned across the seven chapters:
 
@@ -50,7 +50,7 @@ Rather than a ranking, here is a practical decision guide based on what we learn
 
 **Stay in the data platform when your data are already there.** For Snowflake and Databricks users, `VECTOR_COSINE_SIMILARITY` brings semantic search to existing tables without new infrastructure. The full-scan limitation is real but manageable at the scales where teams are typically starting out.
 
-## What Comes Next
+## What comes next
 
 The vector database landscape is moving quickly. Several things will have changed by the time you read this:
 
@@ -64,7 +64,7 @@ The vector database landscape is moving quickly. Several things will have change
 
 The databases themselves will also evolve. Weaviate's free tier may gain HNSW support. Neo4j's `SEARCH` clause will move from preview to general availability. Pinecone will add capabilities. MongoDB will refine its pre-filtering model. The specific gotchas in this book will become outdated; the underlying evaluation framework will not.
 
-## A Final Note
+## A final note
 
 The goal of this book wasn't to pick a winner. It was to give you enough honest, hands-on experience with seven different approaches that you can make a good decision for your own situation. Vector search isn't a feature you bolt on - it's an architectural choice that affects your data model, your query patterns, your operational overhead and your costs.
 

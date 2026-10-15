@@ -1,6 +1,6 @@
 # Day 1: PostgreSQL + pgvector
 
-## What Is It?
+## What is it?
 
 PostgreSQL needs little introduction. It's the world's most widely deployed open-source relational database, with a history stretching back to the late 1980s and an ecosystem that spans virtually every programming language, cloud platform and deployment model imaginable. Developers reach for Postgres because it's reliable, standards-compliant and extraordinarily capable - it handles relational data, JSON documents, full-text search and geospatial queries, all without leaving the database.
 
@@ -8,7 +8,7 @@ The `pgvector` extension adds one more capability to that list: native vector si
 
 What makes this interesting isn't that `pgvector` is the fastest or most feature-rich vector search implementation - it's not. What makes it interesting is that it requires no new infrastructure, no new operational skills and no new mental model. If your application already runs on Postgres, vector search is one extension away.
 
-## When Would You Reach for It?
+## When would you reach for it?
 
 The clearest signal is existing Postgres data. If your application already stores its data in Postgres - user profiles, product catalogs, support tickets, documents - adding `pgvector` means vector search lives alongside those data in the same database. You can filter by salary, location, date or any other column in the same query that computes semantic similarity. No synchronization between databases, no dual writes, no operational overhead of a second system.
 
@@ -16,7 +16,7 @@ The second signal is team familiarity. A team that knows SQL and knows Postgres 
 
 The third signal is scale. `pgvector` handles millions of vectors comfortably, which covers the majority of real-world use cases. If you're building a general-purpose search engine over billions of documents, you'll eventually need something more specialized. But for most applications - internal tools, product search, recommendation features, RAG pipelines over a bounded corpus - `pgvector` is more than sufficient.
 
-## The Use Case
+## The use case
 
 For this chapter we'll build a semantic job listing search engine. Users describe what they're looking for in natural language - "I want to work on machine learning models in production" or "looking for a data pipeline and ETL role" - and the system returns the most relevant listings from the database.
 
@@ -24,7 +24,7 @@ This use case is a natural fit for Postgres. Job listings are structured data: t
 
 The relational advantage becomes clear when we add filters. A user who wants a data engineering role in New York with a minimum salary of $130,000 shouldn't have to choose between semantic relevance and structured constraints. With `pgvector`, both happen in a single SQL query.
 
-## The Data
+## The data
 
 We generate a synthetic dataset of job listings programmatically rather than using a fixed hardcoded list. This keeps the notebook self-contained and lets us scale to any number of listings by changing a single configuration variable.
 
@@ -41,7 +41,7 @@ The key fields are:
 
 The `description` field is the one that carries semantic meaning. Everything else is structured metadata that we use for filtering.
 
-## Building the Application
+## Building the application
 
 ### Prerequisites
 
@@ -76,7 +76,7 @@ NUM_JOBS      = 500
 RANDOM_SEED   = 42
 ```
 
-### Determine Embedding Dimensions
+### Determine embedding dimensions
 
 We'll determine the embedding dimensions dynamically from a test embedding:
 
@@ -90,7 +90,7 @@ EMBEDDING_DIMS = len(test_embedding)
 print(f"Embedding dimensions: {EMBEDDING_DIMS}")
 ```
 
-### Connect to PostgreSQL and Enable pgvector
+### Connect to PostgreSQL and enable pgvector
 
 ```python
 conn = psycopg2.connect(
@@ -107,7 +107,7 @@ cursor.execute("CREATE EXTENSION IF NOT EXISTS vector;")
 print("pgvector extension enabled.")
 ```
 
-### Generate the Dataset
+### Generate the dataset
 
 Rather than a hardcoded list, we'll assemble listings from component pools. Each description is built from a template appropriate to the role's domain:
 
@@ -160,7 +160,7 @@ def generate_job_listings(n: int) -> list:
 job_listings = generate_job_listings(NUM_JOBS)
 ```
 
-### Create the Table
+### Create the table
 
 The table schema is straightforward. The `embedding` column uses the `VECTOR({EMBEDDING_DIMS})` type, which matches the output dimensionality of `all-minilm`.
 
@@ -182,7 +182,7 @@ cursor.execute(f"""
 """)
 ```
 
-### Generate Embeddings and Load Data
+### Generate embeddings and load data
 
 We embed each job description using Ollama and insert the result alongside the structured fields. The `tqdm` progress bar gives useful feedback when loading larger datasets.
 
@@ -200,7 +200,7 @@ for job in tqdm(job_listings, desc = "Inserting listings"):
     ))
 ```
 
-### Create the Vector Index
+### Create the vector index
 
 `pgvector` supports two index types: `IVFFlat` and `HNSW`. We'll use `HNSW`, which gives better recall and is the recommended default for most workloads. Note that we'll create the index after loading data - building it incrementally during inserts is significantly slower for bulk loads.
 
@@ -211,7 +211,7 @@ cursor.execute("""
 """)
 ```
 
-### Semantic Search
+### Semantic search
 
 We embed the user's query and find the most similar job descriptions using the `<=>` cosine distance operator.
 
@@ -256,7 +256,7 @@ Query: 'I want to work on machine learning models in production'
   $140,000 - $170,000 | Similarity: 0.634
 ```
 
-### The Relational Advantage - Filtered Search
+### The relational advantage - filtered search
 
 This is where Postgres genuinely earns its place. We combine semantic similarity with standard SQL filters in a single query. The key subtlety in the implementation is parameter ordering - the first embedding parameter appears in the `SELECT` clause, the filter parameters follow in the `WHERE` clause and the second embedding parameter appears in the `ORDER BY`.
 
@@ -319,7 +319,7 @@ query = 'technical leadership and system design', location = 'New York', min_sal
 
 The SQL filter and the vector similarity operate together in a single round trip to the database. There's no second system to query, no results to merge and no metadata to synchronize.
 
-## What You'd Hit in Production
+## What you'd hit in production
 
 **Index build time.** `HNSW` indexes are built at insert time, which slows bulk loads considerably. For large datasets, always load data first and create the index afterwards. The difference can be an order of magnitude.
 
@@ -329,7 +329,7 @@ The SQL filter and the vector similarity operate together in a single round trip
 
 **Connection pooling.** Vector queries are memory-intensive, particularly at higher dimensions. In production, use `PgBouncer` or a connection pooler to avoid connection exhaustion under load.
 
-## When to Look Elsewhere
+## When to look elsewhere
 
 `pgvector` is a strong default, but it isn't the right choice for every situation. Consider a dedicated vector database if:
 

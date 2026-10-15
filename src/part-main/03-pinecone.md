@@ -1,6 +1,6 @@
 # Day 3: Pinecone
 
-## What Is It?
+## What is it?
 
 Pinecone is a fully managed, purpose-built vector database. Unlike Day 1 and Day 2, where vector search was an extension or add-on to an existing database, Pinecone exists solely to store and search vectors. There's no relational layer, no document model and no infrastructure to manage - just an API.
 
@@ -8,7 +8,7 @@ This is a deliberate design choice. Pinecone's thesis is that vector search is a
 
 Pinecone organizes vectors in **indexes**. Each index stores vectors of a fixed dimension alongside optional **metadata** - structured fields like category, price or brand that can be used for filtering at query time. There are no tables and no schemas. The data model is intentionally minimal: an `id`, a vector and a metadata dictionary.
 
-## When Would You Reach for It?
+## When would you reach for it?
 
 The clearest signal is a pure vector search use case with no need for a broader data model. If your application needs to find similar items - products, documents, images, user profiles - and the structured filtering you need can be expressed as metadata on the vector record, Pinecone is a strong fit.
 
@@ -16,13 +16,13 @@ The second signal is managed simplicity. Pinecone requires no infrastructure dec
 
 The third signal is scale. Pinecone is built to handle hundreds of millions of vectors with consistent low-latency retrieval. If your use case will grow beyond what a general-purpose database with a vector extension can handle, Pinecone is designed for that ceiling.
 
-## The Use Case
+## The use case
 
 For this chapter we'll build a semantic product search engine for an electronics store. Users describe what they're looking for in natural language - "a laptop for video editing under $1500" or "noise canceling headphones for travel" - and get relevant products in return.
 
 This is a natural fit for Pinecone. Product search is a pure similarity problem: given a query, find the most semantically relevant items. The structured constraints a user might apply - category, price ceiling, performance tier - map naturally to Pinecone's metadata filtering. There's no relational data to join, no document hierarchy to navigate and no schema to maintain.
 
-## The Data
+## The data
 
 We generate electronics product listings programmatically from pools of categories, brands, performance tiers, use cases and description templates. Each product has a name, category, brand, price, performance tier and a short prose description. The description is what we embed and search over. Everything else is stored as metadata on the vector record for filtering.
 
@@ -36,7 +36,7 @@ The key fields are:
 - `use_case` - the intended audience, e.g. "remote workers", "content creators", "travelers"
 - `description` - a short prose summary assembled from templates; this is what we embed
 
-## Building the Application
+## Building the application
 
 ### Prerequisites
 
@@ -68,7 +68,7 @@ RANDOM_SEED      = 42
 
 > **Note:** `NUM_PRODUCTS` controls the size of the generated dataset. 200 is the recommended default for this chapter - embedding generation runs locally via Ollama and is single-threaded, so larger values will work but will take proportionally longer. Production pipelines would typically use a hosted embedding endpoint with async or batched generation to handle scale.
 
-### Determine Embedding Dimensions
+### Determine embedding dimensions
 
 We'll determine the embedding dimensions dynamically from a test embedding:
 
@@ -89,7 +89,7 @@ pc = Pinecone(api_key = PINECONE_API_KEY)
 print("Connected to Pinecone.")
 ```
 
-### Generate the Dataset
+### Generate the dataset
 
 We assemble products from component pools. Description templates are parameterized to produce varied prose across all 200 products:
 
@@ -132,7 +132,7 @@ def generate_product() -> dict:
 products = [generate_product() for _ in range(NUM_PRODUCTS)]
 ```
 
-### Create the Pinecone Index
+### Create the Pinecone index
 
 We create a serverless index programmatically. If the index already exists from a previous run, we delete it and recreate it for a clean start. The `EMBEDDING_DIMS` variable ensures the index dimension matches the embedding model.
 
@@ -167,7 +167,7 @@ while True:
 index = pc.Index(INDEX_NAME)
 ```
 
-### Generate Embeddings and Load Data
+### Generate embeddings and load data
 
 In Pinecone, each record consists of three parts: an `id`, a `values` list (the embedding vector) and a `metadata` dictionary. The metadata holds all the structured fields we want to filter on or display in search results.
 
@@ -205,7 +205,7 @@ print(f"Total vectors in index: {stats['total_vector_count']}")
 print(f"Dimensions: {stats['dimension']}")
 ```
 
-### Semantic Search
+### Semantic search
 
 We embed the user's query and pass it to Pinecone's `query` method. The `include_metadata = True` parameter ensures the structured fields come back with each result alongside the similarity score.
 
@@ -258,7 +258,7 @@ Query: 'noise canceling headphones for travel'
 
 The embedding captures what a query means, not arithmetic. The notebook also runs "a laptop for video editing under $1500", and two of its five results cost more than that ($1,600 and $2,420). A price ceiling needs a metadata filter, which is what we turn to next.
 
-### Filtered Search
+### Filtered search
 
 Pinecone supports metadata filtering at query time using a MongoDB-style filter syntax. The filter is applied as part of the search itself, which Pinecone calls single-stage filtering, so every result satisfies the filter. The effect is similar to the pre-filtering we saw in MongoDB Atlas on Day 2.
 
@@ -327,7 +327,7 @@ query = 'portable device for travel', max_price = $300
   A mid-range E-Reader with weeks of battery life and waterproof design, perfect for travelers.
 ```
 
-## What You'd Hit in Production
+## What you'd hit in production
 
 **Metadata filtering limitations.** Pinecone's metadata filters work well for low-cardinality fields like category or performance tier. For high-cardinality fields such as free-text tags or arbitrary user-defined attributes, the filtering model can become cumbersome. Plan your metadata schema upfront.
 
@@ -341,7 +341,7 @@ query = 'portable device for travel', max_price = $300
 
 **Free tier limits.** The free tier is the Starter plan, which allows one project with up to five serverless indexes and a total of 2GB of storage. It's limited to AWS `us-east-1`, which is why the notebook uses that cloud and region. This is sufficient for development and small production workloads.
 
-## When to Look Elsewhere
+## When to look elsewhere
 
 Pinecone is an excellent choice for pure vector search with metadata filtering. Consider alternatives if:
 

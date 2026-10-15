@@ -1,12 +1,12 @@
 # Day 4: Weaviate
 
-## What Is It?
+## What is it?
 
 Weaviate is an open-source vector database with a managed cloud offering. Unlike the pure-play managed approach of Day 3, Weaviate can be self-hosted or run as a fully managed service on Weaviate Cloud. Its defining feature is hybrid search - the ability to combine vector similarity, BM25 keyword matching and metadata filtering in a single query, without needing to orchestrate separate systems.
 
 Weaviate organizes data in **collections**. Each collection has a defined schema with typed properties - text, integers, arrays and more. This schema-aware approach means data are validated at write time and queries can take advantage of strong typing when filtering. Vectors are stored alongside the document properties on the same object, so there's no separate metadata store to maintain.
 
-## When Would You Reach for It?
+## When would you reach for it?
 
 The clearest signal is a hybrid search requirement. If your use case benefits from both the semantic meaning of a query and the presence of specific technical terms - and most knowledge-heavy retrieval tasks do - Weaviate handles this natively through a single query parameter called `alpha`. At `alpha = 0`, queries are pure BM25 keyword search. At `alpha = 1`, queries are pure vector search. Values in between blend the two in proportion. No separate indexes, no result merging in application code.
 
@@ -14,13 +14,13 @@ The second signal is rich structured metadata alongside free-text content. Resea
 
 The third signal is open-source flexibility. Weaviate is BSD 3-Clause licensed and can be self-hosted on your own infrastructure. For teams with data residency requirements or a preference for running their own stack, this is a meaningful advantage over fully managed proprietary options.
 
-## The Use Case
+## The use case
 
 For this chapter we'll build a research paper discovery system. Users describe their topic of interest in natural language - "transformer models for natural language understanding" or "reinforcement learning for robotic manipulation" - and get relevant papers in return. Filters let users narrow results by research field, publication year or citation count.
 
 This is a natural fit for Weaviate. Research papers have rich structured metadata - field, venue, year, citation count, authors - alongside a free-text abstract that carries the semantic meaning. Users searching for papers often include specific technical terms ("BM25", "HNSW", "transformer") that benefit from keyword matching, while the overall intent of the query benefits from semantic search. Hybrid search handles both simultaneously.
 
-## The Data
+## The data
 
 We'll generate research papers programmatically from pools of fields, venues, author names and abstract templates. Each abstract is assembled from domain-appropriate components - methods, datasets and contribution statements - giving enough variation for meaningful hybrid search across hundreds of papers.
 
@@ -34,7 +34,7 @@ The key fields are:
 - `citation_count` - an integer between 0 and 500
 - `abstract` - a short prose summary assembled from templates; this is what we embed and search over
 
-## Building the Application
+## Building the application
 
 ### Prerequisites
 
@@ -44,7 +44,7 @@ To follow along you'll need:
 - Ollama running locally with the `all-minilm` model pulled
 - Python 3.12 with a virtual environment
 
-### Create a Free Weaviate Cloud Cluster
+### Create a free Weaviate cloud cluster
 
 If you don't already have a cluster:
 
@@ -77,7 +77,7 @@ RANDOM_SEED      = 42
 
 > **Note:** `NUM_PAPERS` controls the size of the generated dataset. 200 is the recommended default for this chapter - embedding generation runs locally via Ollama and is single-threaded, so larger values will work but will take proportionally longer. Production pipelines would typically use a hosted embedding endpoint with async or batched generation to handle scale.
 
-### Determine Embedding Dimensions
+### Determine embedding dimensions
 
 We'll determine the embedding dimensions dynamically from a test embedding:
 
@@ -91,7 +91,7 @@ EMBEDDING_DIMS = len(test_embedding)
 print(f"Embedding dimensions: {EMBEDDING_DIMS}")
 ```
 
-### Connect to Weaviate Cloud
+### Connect to Weaviate cloud
 
 ```python
 client = weaviate.connect_to_weaviate_cloud(
@@ -102,7 +102,7 @@ client = weaviate.connect_to_weaviate_cloud(
 print(f"Connected to Weaviate: {client.is_ready()}")
 ```
 
-### Generate the Dataset
+### Generate the dataset
 
 We'll assemble papers from component pools. Each abstract is built from a template parameterized with a field-appropriate method, dataset and contribution statement:
 
@@ -145,7 +145,7 @@ def generate_paper() -> dict:
 papers = [generate_paper() for _ in range(NUM_PAPERS)]
 ```
 
-### Create the Weaviate Collection
+### Create the Weaviate collection
 
 Weaviate organizes data in **collections**. Each collection has a defined schema with typed properties. We'll use `Configure.Vectors.self_provided()` since we're supplying our own embeddings from Ollama rather than using one of Weaviate's built-in vectorizers.
 
@@ -178,7 +178,7 @@ collection = client.collections.create(
 print(f"Collection '{COLLECTION_NAME}' created.")
 ```
 
-### Generate Embeddings and Load Data
+### Generate embeddings and load data
 
 We'll embed each abstract and insert papers using Weaviate's batch context manager. The `batch.dynamic()` mode automatically adjusts batch size based on server response times:
 
@@ -204,7 +204,7 @@ with collection.batch.dynamic() as batch:
 print(f"\nInserted {collection.aggregate.over_all().total_count} papers.")
 ```
 
-### Wait for the Vector Index to be Ready
+### Wait for the vector index to be ready
 
 Weaviate can take a short time to make newly inserted vectors searchable, so a query run straight after loading may return nothing. Rather than guessing at a delay, we run a small test query and wait until it returns a result:
 
@@ -225,7 +225,7 @@ while True:
 
 The loop issues a real vector query and waits until it returns an object. This is the most reliable signal that the index is ready for use.
 
-### Semantic Search
+### Semantic search
 
 We'll start with pure vector search using `collection.query.near_vector()` to establish a baseline before introducing hybrid search. The `MetadataQuery(distance = True)` parameter returns the cosine distance alongside each result:
 
@@ -267,7 +267,7 @@ Query: 'transformer models for natural language understanding'
   Distance: 0.273
 ```
 
-### Hybrid Search
+### Hybrid search
 
 Hybrid search combines vector similarity with BM25 keyword matching using the `alpha` parameter. We'll use `HybridFusion.RELATIVE_SCORE` as the fusion type, which normalizes scores from both searches before combining them:
 
@@ -293,7 +293,7 @@ def hybrid_search_papers(query: str, alpha: float = 0.5, top_k: int = 5):
         print()
 ```
 
-### Comparing Alpha Values
+### Comparing alpha values
 
 Running the same query at `alpha = 0.0`, `0.5` and `1.0` illustrates how the blend shifts results. At `alpha = 0.0` (pure BM25), results are ranked by keyword overlap with the query terms. At `alpha = 1.0` (pure vector), results are ranked by semantic similarity. At `alpha = 0.5`, the two signals are blended using relative score normalization:
 
@@ -320,7 +320,7 @@ The block shows only the top result at each alpha. In the full output the same t
 
 For research paper discovery, a balanced blend works well because users often include specific technical terms alongside more general intent.
 
-### Filtered Hybrid Search
+### Filtered hybrid search
 
 Any property defined in the collection schema can be used as a filter - no separate index declaration is needed. Filters are expressed using Weaviate's `Filter` class and chained with the `&` operator:
 
@@ -400,7 +400,7 @@ field = 'Computer Vision', min_year = 2022
   Score: 0.440
 ```
 
-## What You'd Hit in Production
+## What you'd hit in production
 
 **Free tier limitations.** The Weaviate Cloud free tier supports one collection per cluster, up to 100,000 objects and only the `hfresh` vector index type. `HNSW` requires a paid plan. For production workloads beyond those limits, upgrade to a paid plan.
 
@@ -416,7 +416,7 @@ field = 'Computer Vision', min_year = 2022
 
 **Self-hosting.** Weaviate can be run locally via Docker if you prefer not to use the managed cloud service. The self-hosted version supports `HNSW` and has no collection limit. This is worth considering for production deployments with data residency requirements.
 
-## When to Look Elsewhere
+## When to look elsewhere
 
 Weaviate is a strong choice for hybrid search and knowledge-heavy retrieval. Consider alternatives if:
 

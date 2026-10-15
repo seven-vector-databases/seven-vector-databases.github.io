@@ -1,12 +1,12 @@
 # Day 2: MongoDB Atlas
 
-## What Is It?
+## What is it?
 
 MongoDB is the world's most popular document database. Rather than storing data in rows and columns, MongoDB stores it as documents - flexible, JSON-like structures that can hold nested objects, arrays and variably-shaped data without a fixed schema. This makes it a natural fit for content that doesn't conform cleanly to a relational table, such as product catalogs with varying attributes, user profiles with optional fields or recipes with ingredient lists of different lengths.
 
 MongoDB Atlas is the fully managed cloud version of MongoDB, available on AWS, GCP and Microsoft Azure. Atlas Vector Search extends Atlas with native vector similarity search, letting us store and query embeddings directly alongside our existing document data. There's no separate vector store to maintain, no synchronization between systems and no new operational model to learn.
 
-## When Would You Reach for It?
+## When would you reach for it?
 
 The clearest signal is an existing MongoDB footprint. If an application already stores its data as documents in MongoDB, Atlas Vector Search is the path of least resistance - vector search becomes a field on existing documents rather than a reason to introduce a new database.
 
@@ -14,7 +14,7 @@ The second signal is variably structured content. Documents whose shape varies f
 
 The third signal is the aggregation pipeline. MongoDB's query model is built around composable pipeline stages. The `$vectorSearch` stage plugs into this pipeline naturally, meaning we can chain vector search with filtering, grouping, lookup joins and projection in a single query. Developers already familiar with MongoDB's aggregation model will find Atlas Vector Search intuitive to work with.
 
-## The Use Case
+## The use case
 
 For this chapter we'll build a semantic recipe finder. Users describe what they feel like eating in natural language - "something warm and spicy for a cold evening" or "a light fresh dish with vegetables for summer" - and get relevant recipes in return.
 
@@ -22,7 +22,7 @@ Recipes are a natural fit for the document model. Each recipe has a name, a cuis
 
 The `description` field on each recipe is a short prose summary of the dish. This is what we'll embed and search over. The structured fields - cuisine, difficulty, prep time - serve as filters.
 
-## The Data
+## The data
 
 We'll generate recipes programmatically from pools of cuisines, cooking methods, ingredients and description templates. Each description is assembled from randomly selected components, giving enough variation for meaningful semantic search across hundreds of recipes.
 
@@ -37,7 +37,7 @@ The key fields are:
 
 Note that `ingredients` is a list field with no fixed length. This is the document model working as intended - no schema changes are needed to accommodate recipes with a handful of ingredients or a dozen.
 
-## Building the Application
+## Building the application
 
 ### Prerequisites
 
@@ -47,7 +47,7 @@ To follow along you'll need:
 - Ollama running locally with the `all-minilm` model pulled
 - Python 3.12 with a virtual environment
 
-### Create a Free MongoDB Atlas Cluster
+### Create a free MongoDB Atlas cluster
 
 If you don't already have a cluster:
 
@@ -84,7 +84,7 @@ RANDOM_SEED   = 42
 
 > **Note:** `NUM_RECIPES` controls the size of the generated dataset. 200 is the recommended default for this chapter - embedding generation runs locally via Ollama and is single-threaded, so larger values will work but will take proportionally longer. Production pipelines would typically use a hosted embedding endpoint with async or batched generation to handle scale.
 
-### Determine Embedding Dimensions
+### Determine embedding dimensions
 
 We'll determine the embedding dimensions dynamically from a test embedding:
 
@@ -98,7 +98,7 @@ EMBEDDING_DIMS = len(test_embedding)
 print(f"Embedding dimensions: {EMBEDDING_DIMS}")
 ```
 
-### Generate the Dataset
+### Generate the dataset
 
 We'll assemble recipes from component pools - cuisines, cooking methods, proteins, vegetables, bases and description templates. The description templates are parameterized so each recipe gets a unique prose summary:
 
@@ -141,7 +141,7 @@ def generate_recipe() -> dict:
 recipes = [generate_recipe() for _ in range(NUM_RECIPES)]
 ```
 
-### Generate Embeddings and Load Data
+### Generate embeddings and load data
 
 We'll embed each recipe description and store the vector as an `embedding` field on the document:
 
@@ -158,7 +158,7 @@ for recipe in tqdm(recipes, desc = "Generating embeddings"):
 collection.insert_many(documents)
 ```
 
-### Create the Vector Index
+### Create the vector index
 
 We create the index programmatically using `SearchIndexModel`. The `EMBEDDING_DIMS` variable ensures the index definition stays in sync with whichever embedding model is in use:
 
@@ -194,7 +194,7 @@ collection.create_search_index(model = search_index_model)
 print(f"Index '{INDEX_NAME}' creation initiated.")
 ```
 
-### Wait for the Vector Index to be Ready
+### Wait for the vector index to be ready
 
 > **Note:** Atlas Vector Search can report the index status as `READY` slightly before queries return results. A fixed delay isn't reliable - even our small collection took around 30 seconds to become ready, and a larger one may need longer. The most robust approach is to poll the index status and then confirm with a test query.
 
@@ -234,7 +234,7 @@ while True:
 
 The second loop issues a real vector query and waits until it returns a result. This is the most reliable signal that the index is ready for use.
 
-### Semantic Search
+### Semantic search
 
 Atlas Vector Search uses MongoDB's aggregation pipeline. The `$vectorSearch` stage takes a query vector and returns the most similar documents, ranked by cosine similarity. The `$project` stage controls which fields are returned and adds the similarity score via `$meta: "vectorSearchScore"`.
 
@@ -276,7 +276,7 @@ def search_recipes(query: str, top_k: int = 5):
 
 The `numCandidates` parameter controls how many documents Atlas considers before returning the top `limit` results. A higher value improves recall at the cost of latency. We use a ratio of 10x here because the collection is small, but the Atlas documentation recommends starting at 20x.
 
-### The Document Advantage - Filtered Search
+### The document advantage - filtered search
 
 Atlas Vector Search supports pre-filtering directly in the `$vectorSearch` stage. Filters are applied before the vector search, meaning only matching documents are considered as candidates. This is more precise than post-filtering and produces better results when filters are selective.
 
@@ -343,7 +343,7 @@ query = 'a comforting pasta dish', cuisine = 'Italian', difficulty = 'Easy', max
 
 The function asks for up to five results, but only three come back because only three of the 200 recipes match all three filters.
 
-### Querying the Document Model
+### Querying the document model
 
 One of MongoDB's strengths is querying nested and array fields directly. We can find all recipes containing a specific ingredient using a standard MongoDB query - no joins and no separate table, as follows:
 
@@ -357,7 +357,7 @@ def find_by_ingredient(ingredient: str, limit: int = 5):
 
 This works because `ingredients` is a native array field on the document. On a collection this small a scan is fine, but at scale we'd create a multikey index on `ingredients`, which MongoDB builds when we index an array field.
 
-## What You'd Hit in Production
+## What you'd hit in production
 
 **Index propagation delay.** As noted above, Atlas can report the index status as `READY` slightly before queries return results, and even our small collection took around 30 seconds to become ready. Budget for this in any automated pipeline that creates a collection and immediately queries it.
 
@@ -369,7 +369,7 @@ This works because `ingredients` is a native array field on the document. On a c
 
 **Index management.** The vector search index can be created, updated and dropped entirely from Python using `SearchIndexModel` and `create_search_index()` - no Atlas UI required. This makes the full lifecycle scriptable and repeatable.
 
-## When to Look Elsewhere
+## When to look elsewhere
 
 MongoDB Atlas is a strong choice when your application already runs on MongoDB or when your data are naturally document-shaped. Consider a dedicated vector database if:
 
